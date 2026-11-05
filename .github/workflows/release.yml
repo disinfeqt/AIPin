@@ -29,6 +29,12 @@ jobs:
             echo "::error file=AIPin/AIPin.toc::Tag $TAG does not match '## Version: $TOC_VERSION' in AIPin.toc"
             exit 1
           fi
+          # The AddOns list has no version column, so ## Title carries it too; keep the two in step.
+          TOC_TITLE="$(sed -n 's/^## Title:[[:space:]]*//p' AIPin/AIPin.toc | tr -d '\r' | head -n 1)"
+          case "$TOC_TITLE" in
+            *"v$VERSION"*) ;;
+            *) echo "::error file=AIPin/AIPin.toc::'## Title: $TOC_TITLE' should show v$VERSION"; exit 1 ;;
+          esac
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Extract release notes from CHANGELOG.md

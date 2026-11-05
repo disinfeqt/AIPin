@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.3 - 2026-11-05
+
+- 插件列表显示 AIPin 图标和版本号。
+- The AddOns list shows the AIPin icon and version.
+
 ## 1.4.2 - 2026-11-05
 
 - 给 AI 助手的说明和角色数据更精简：图样单独存放，只在问做什么装备时才读取。
