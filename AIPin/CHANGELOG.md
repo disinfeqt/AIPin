@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.1.1 - 2026-11-05
+
+- 暴雪自带的导航点不再只显示「地图标记分享」：鼠标悬停和屏幕上的导航图标会显示 AIPin 标记的名字。
+- Blizzard's map pin tooltip and on-screen navigation marker now show the AIPin pin title instead of the generic "Map Pin".
+
 ## 1.1.0
 - 插件改名为 AIPin（命令 `/aipin`、`/ap`；存档变量 AIPinDB、AIPinChars、AIPinInbox；存档文件 SavedVariables/AIPin.lua）。
 - 新增角色信息记录（AIPinChars）：等级、经验、金币、位置、天赋、专业、任务进度、装备、背包、炉石。新增 `/aipin me`。

@@ -126,7 +126,73 @@ local function RefreshMap()
   end
 end
 
-local function SetNativeWaypoint(uiMapID, x, y)
+-- Blizzard's own waypoint always says "地图标记分享" (Map Pin). We remember the
+-- title of the pin we set and show it on the waypoint's tooltip and under the
+-- on-screen navigation marker.
+local activeTitle
+
+local function CurrentWaypointTitle()
+  if not activeTitle then return nil end
+  if C_Map and C_Map.GetUserWaypoint then
+    local wp = C_Map.GetUserWaypoint()
+    if not wp or not wp.position then return nil end
+    local a = activeTitle
+    if wp.uiMapID ~= a.uiMapID then return nil end
+    if math.abs(wp.position.x - a.x) > 0.002 or math.abs(wp.position.y - a.y) > 0.002 then
+      return nil
+    end
+  end
+  return activeTitle.title
+end
+
+local function IsWaypointOwner(owner)
+  if not owner then return false end
+  if owner.pinTemplate == "WaypointLocationPinTemplate" then return true end
+  if SuperTrackedFrame and owner == SuperTrackedFrame then return true end
+  return false
+end
+
+local hudLabel
+local function UpdateHudLabel()
+  if not SuperTrackedFrame then return end
+  if not hudLabel then
+    hudLabel = SuperTrackedFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local anchor = SuperTrackedFrame.Icon or SuperTrackedFrame
+    hudLabel:SetPoint("BOTTOM", anchor, "TOP", 0, 4)
+    hudLabel:SetTextColor(1, 0.82, 0)
+  end
+  local t = CurrentWaypointTitle()
+  if t and C_SuperTrack and C_SuperTrack.IsSuperTrackingUserWaypoint
+     and C_SuperTrack.IsSuperTrackingUserWaypoint() then
+    hudLabel:SetText(t)
+    hudLabel:Show()
+  else
+    hudLabel:Hide()
+  end
+end
+
+local tooltipHooked
+local function HookWaypointTooltip()
+  if tooltipHooked or not GameTooltip then return end
+  tooltipHooked = true
+  GameTooltip:HookScript("OnShow", function(tt)
+    local ok, owner = pcall(tt.GetOwner, tt)
+    if not ok or not IsWaypointOwner(owner) then return end
+    local t = CurrentWaypointTitle()
+    if t then
+      local first = _G[tt:GetName() .. "TextLeft1"]
+      if first then first:SetText(t) end
+      tt:AddLine("AIPin", 0.5, 0.8, 1)
+      tt:Show()
+    end
+  end)
+  local ev = CreateFrame("Frame")
+  ev:RegisterEvent("USER_WAYPOINT_UPDATED")
+  ev:RegisterEvent("SUPER_TRACKING_CHANGED")
+  ev:SetScript("OnEvent", UpdateHudLabel)
+end
+
+local function SetNativeWaypoint(uiMapID, x, y, title)
   if not (C_Map and UiMapPoint and C_Map.CanSetUserWaypointOnMap and C_Map.SetUserWaypoint) then
     return false
   end
@@ -134,10 +200,15 @@ local function SetNativeWaypoint(uiMapID, x, y)
   if not ok or not can then return false end
   local point = UiMapPoint.CreateFromCoordinates(uiMapID, x, y)
   if not point then return false end
+  activeTitle = { uiMapID = uiMapID, x = x, y = y, title = title }
+  EnsureDB()
+  AIPinDB.activeWaypoint = activeTitle
+  HookWaypointTooltip()
   C_Map.SetUserWaypoint(point)
   if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
     pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
   end
+  UpdateHudLabel()
   return true
 end
 
@@ -212,7 +283,7 @@ local function AddPin(uiMapID, xPct, yPct, title)
   end
 
   local nx, ny = xPct / 100, yPct / 100
-  SetNativeWaypoint(uiMapID, nx, ny)
+  SetNativeWaypoint(uiMapID, nx, ny, pin.title)
   AddTomTom(uiMapID, nx, ny, pin.title)
   RefreshMap()
   DrawOverlayPins()
@@ -402,5 +473,10 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
     EnsureDB()
   elseif event == "PLAYER_LOGIN" then
     OnLogin()
+    if AIPinDB and AIPinDB.activeWaypoint and not activeTitle then
+      activeTitle = AIPinDB.activeWaypoint
+    end
+    HookWaypointTooltip()
+    UpdateHudLabel()
   end
 end)
