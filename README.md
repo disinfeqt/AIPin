@@ -8,7 +8,7 @@
 
 ## 功能
 
-- **地图标记**：NPC 和地点会标在世界地图上，同时设置游戏自带的导航箭头；装了 [TomTom](https://www.curseforge.com/wow/addons/tomtom) 也会加一个 TomTom 路点。
+- **地图标记**：NPC 和地点会标在世界地图上，同时设置游戏自带的导航箭头
 - **两种标记方式**：把助手给的 `/aipin <区域> <x> <y> <名称>` 粘贴到聊天框；或者让能改你电脑文件的助手编辑 `Inbox.lua`，你点小地图按钮同步（会重载界面）。
 - **角色信息**：等级、经验、金币、位置、天赋、专业、任务进度、装备、背包和炉石保存在 SavedVariables（`AIPinChars`），助手可以读取。
 - **小地图按钮**：左键打开标记列表，右键同步。
@@ -84,7 +84,7 @@ AIPin is a World of Warcraft: Forever addon (Interface 16001) that lets your AI 
 
 ### Features
 
-- **Map pins**: NPCs and places are marked on the world map with the game's waypoint arrow, plus a [TomTom](https://www.curseforge.com/wow/addons/tomtom) waypoint if TomTom is installed.
+- **Map pins**: NPCs and places are marked on the world map with the game's waypoint arrow
 - **Two ways to pin**: paste the assistant's `/aipin <zone> <x> <y> <title>` line into chat, or let an assistant that can edit files on your computer write to `Inbox.lua`, then click the minimap button to sync (this reloads the UI).
 - **Character snapshot**: level, XP, money, location, talents, professions, quest progress, gear, bags and hearthstone are saved to SavedVariables (`AIPinChars`) for your assistant to read.
 - **Minimap button**: left-click to open the pin list, right-click to sync.
