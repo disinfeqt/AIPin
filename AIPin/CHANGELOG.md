@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.1.3 - 2026-11-05
+
+- 修正小地图按钮图标偏移，现在居中在圆框里。
+- Fixed the minimap button icon being off-center in its ring.
+
 ## 1.1.2 - 2026-11-05
 
 - 小地图按钮：左键打开标记列表，右键同步（避免误触重载界面）。

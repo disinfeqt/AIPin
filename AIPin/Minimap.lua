@@ -105,8 +105,12 @@ local function CreateButton()
   btn:SetSize(31, 31); btn:SetFrameStrata("MEDIUM"); btn:SetFrameLevel(8)
   btn:RegisterForClicks("LeftButtonUp", "RightButtonUp"); btn:RegisterForDrag("LeftButton")
   btn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-  local icon = btn:CreateTexture(nil, "BACKGROUND")
-  icon:SetSize(20, 20); icon:SetPoint("CENTER", 0, 1)
+  -- Same layout as LibDBIcon so it lines up with the standard tracking border.
+  local bg = btn:CreateTexture(nil, "BACKGROUND")
+  bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+  bg:SetSize(20, 20); bg:SetPoint("TOPLEFT", 7, -5)
+  local icon = btn:CreateTexture(nil, "ARTWORK")
+  icon:SetSize(18, 18); icon:SetPoint("TOPLEFT", 7, -6)
   local ok = pcall(icon.SetTexture, icon, ICON)
   if not ok or not icon:GetTexture() then pcall(icon.SetTexture, icon, FALLBACK) end
   if btn.CreateMaskTexture then
