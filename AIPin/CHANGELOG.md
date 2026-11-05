@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.1.4 - 2026-11-05
+
+- 移除了 AIPin 自己画的黄色地图标记，它的位置是错的；现在只保留暴雪导航点和 TomTom 标记。
+- Removed AIPin's own yellow map overlay icons, which were drawn at the wrong coordinates; only the Blizzard waypoint and TomTom pins remain.
+
 ## 1.1.3 - 2026-11-05
 
 - 修正小地图按钮图标偏移，现在居中在圆框里。

@@ -226,48 +226,6 @@ local function AddTomTom(uiMapID, x, y, title)
   end
 end
 
-local overlayPins = {}
-
-local function ClearOverlayPins()
-  for _, f in ipairs(overlayPins) do
-    f:Hide()
-    f:SetParent(nil)
-  end
-  wipe(overlayPins)
-end
-
-local function DrawOverlayPins()
-  ClearOverlayPins()
-  if not WorldMapFrame or not WorldMapFrame:IsShown() then return end
-  local canvas = WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child
-  if not canvas then return end
-  local mapID = WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
-  if not mapID then return end
-  EnsureDB()
-  local w, h = canvas:GetWidth(), canvas:GetHeight()
-  if not w or w == 0 then return end
-  for _, p in ipairs(AIPinDB.pins) do
-    if p.uiMapID == mapID then
-      local f = CreateFrame("Frame", nil, canvas)
-      f:SetSize(22, 22)
-      local tex = f:CreateTexture(nil, "OVERLAY")
-      tex:SetAllPoints()
-      tex:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
-      f:EnableMouse(true)
-      f:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(p.title or "AIPin", 1, 0.82, 0)
-        GameTooltip:AddLine(string.format("%.1f, %.1f", p.x, p.y), 1, 1, 1)
-        GameTooltip:Show()
-      end)
-      f:SetScript("OnLeave", function() GameTooltip:Hide() end)
-      f:SetPoint("CENTER", canvas, "TOPLEFT", (p.x / 100) * w, -(p.y / 100) * h)
-      f:Show()
-      overlayPins[#overlayPins + 1] = f
-    end
-  end
-end
-
 local function AddPin(uiMapID, xPct, yPct, title)
   EnsureDB()
   local pin = {
@@ -298,7 +256,6 @@ local function AddPin(uiMapID, xPct, yPct, title)
   SetNativeWaypoint(uiMapID, nx, ny, pin.title)
   AddTomTom(uiMapID, nx, ny, pin.title)
   RefreshMap()
-  DrawOverlayPins()
 
   Print(string.format(L.pinned, pin.title, MapName(uiMapID), xPct, yPct))
 end
@@ -421,18 +378,6 @@ SLASH_AIPIN1 = "/aipin"
 SLASH_AIPIN2 = "/ap"
 SlashCmdList["AIPIN"] = SlashHandler
 
-local function HookWorldMap()
-  if not WorldMapFrame or AIPin_MapHooked then return end
-  AIPin_MapHooked = true
-  if WorldMapFrame.OnMapChanged then
-    hooksecurefunc(WorldMapFrame, "OnMapChanged", DrawOverlayPins)
-  end
-  WorldMapFrame:HookScript("OnShow", DrawOverlayPins)
-  if WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.OnCanvasSizeChanged then
-    hooksecurefunc(WorldMapFrame.ScrollContainer, "OnCanvasSizeChanged", DrawOverlayPins)
-  end
-end
-
 -- Inbox.lua is a plain addon file (never written by the game), so the
 -- assistant can edit it on disk and a /reload imports the new pins.
 local function ImportInbox()
@@ -457,7 +402,6 @@ end
 
 local function OnLogin()
   EnsureDB()
-  HookWorldMap()
   ImportInbox()
   local pins = AIPinDB.pins
   if pins and #pins > 0 then
@@ -471,7 +415,6 @@ local function RemovePin(i)
   if not AIPinDB.pins[i] then return end
   table.remove(AIPinDB.pins, i)
   ClearOverlayPins()
-  DrawOverlayPins()
   RefreshMap()
 end
 
