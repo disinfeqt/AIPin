@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Check tag matches AIPin.toc version
+        run: |
+          VERSION="${TAG#v}"
+          TOC_VERSION="$(sed -n 's/^## Version:[[:space:]]*//p' AIPin/AIPin.toc | tr -d '\r' | head -n 1)"
+          if [ "$VERSION" != "$TOC_VERSION" ]; then
+            echo "::error file=AIPin/AIPin.toc::Tag $TAG does not match '## Version: $TOC_VERSION' in AIPin.toc"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          # Print the body of the "## <version>" section (also accepts "## v1.2.3",
+          # "## [1.2.3]" and "## 1.2.3 - date"), up to the next "## " heading.
+          awk -v ver="$VERSION" '
+            /^##[ \t]/ {
+              if (found) exit
+              h = $0
+              sub(/\r$/, "", h)
+              sub(/^##[ \t]+/, "", h)
+              split(h, parts, /[ \t]+/)
+              tok = parts[1]
+              gsub(/^\[|\]$/, "", tok)
+              sub(/^v/, "", tok)
+              if (tok == ver) found = 1
+              next
+            }
+            found { sub(/\r$/, ""); print }
+          ' AIPin/CHANGELOG.md \
+            | sed -e '/./,$!d' \
+            | awk '{ lines[NR] = $0 } END { n = NR; while (n > 0 && lines[n] ~ /^[ \t]*$/) n--; for (i = 1; i <= n; i++) print lines[i] }' \
+            > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error file=AIPin/CHANGELOG.md::No '## $VERSION' section found in CHANGELOG.md"
+            exit 1
+          fi
+          echo "--- release notes ---"
+          cat release-notes.md
+
+      - name: Build AIPin.zip
+        run: |
+          zip -r -X AIPin.zip AIPin -x '*.DS_Store' -x '*/.*'
+          unzip -l AIPin.zip
+          # The zip must unpack to a single AIPin/ folder with the TOC directly inside.
+          unzip -Z1 AIPin.zip | grep -qx 'AIPin/AIPin.toc'
+          if unzip -Z1 AIPin.zip | grep -qv '^AIPin/'; then
+            echo "::error::AIPin.zip has entries outside AIPin/"
+            exit 1
+          fi
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          case "$VERSION" in *-*) PRERELEASE="--prerelease" ;; esac
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            # Re-run for an existing tag: refresh the notes and replace the asset.
+            gh release edit "$TAG" --title "AIPin $TAG" --notes-file release-notes.md
+            gh release upload "$TAG" AIPin.zip --clobber
+          else
+            gh release create "$TAG" AIPin.zip \
+              --verify-tag \
+              --title "AIPin $TAG" \
+              --notes-file release-notes.md \
+              $PRERELEASE
+          fi
