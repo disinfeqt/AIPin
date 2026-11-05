@@ -1,5 +1,13 @@
 # CHANGELOG / 更新日志
 
+## 1.3.1 - 2026-11-05
+
+- 重做面板：大窗口 + 两个标签页（待办 / 标记），顶部显示图标和版本号。
+- 待办支持只写区域名：/aipin todo 学法杖 @ 暴风城，到了那个区域就提醒，不用背坐标。
+- 输入框提示更新，支持 @ 区域 和 @ 区域 x y 两种格式。
+- 面板标签显示标记数量和待办完成进度。
+- Rebuilt panel with tabs (Todos / Pins), icon + version header, zone-only reminders.
+
 ## 1.3.0 - 2026-11-05
 
 - 新增待办清单：/aipin todo 添加，/aipin done 完成，面板里也能直接输入、勾选和删除。
