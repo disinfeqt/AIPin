@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AIPin — 魔兽世界：Forever 地图标记插件</title>
+  <meta name="description" content="《魔兽世界：Forever》插件：让 AI 助手把 NPC 和地点标在你的游戏地图上，并读取你的角色信息。">
+  <meta name="theme-color" content="#0b0907">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AIPin">
+  <meta property="og:description" content="让 AI 助手把 NPC 和地点标在你的《魔兽世界：Forever》地图上。">
+  <meta property="og:image" content="{{ICON_URL}}">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Serif+SC:wght@700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Choose the language before first paint: ?lang= first, then the saved choice, else Chinese.
+    (function () {
+      try {
+        var pick = new URLSearchParams(location.search).get('lang') || localStorage.getItem('aipin-lang');
+        if (pick && pick.toLowerCase().indexOf('en') === 0) document.documentElement.lang = 'en';
+      } catch (e) {}
+    })();
+  </script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top">
+        <img src="icon.png" alt="" width="32" height="32">
+        <span>AIPin</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#features"><span lang="zh-CN">功能</span><span lang="en">Features</span></a>
+        <a href="#install"><span lang="zh-CN">安装</span><span lang="en">Install</span></a>
+        <a href="#usage"><span lang="zh-CN">用法</span><span lang="en">Usage</span></a>
+        <a href="#agents"><span lang="zh-CN">给 AI 助手</span><span lang="en">For AI</span></a>
+        <a href="#changelog"><span lang="zh-CN">更新日志</span><span lang="en">Changelog</span></a>
+      </nav>
+      <div class="nav-actions">
+        <div class="lang-toggle" role="group" aria-label="语言 / Language">
+          <button type="button" data-set-lang="zh-CN" aria-pressed="true">中文</button>
+          <button type="button" data-set-lang="en" aria-pressed="false">English</button>
+        </div>
+        <a class="icon-link" href="{{REPO_URL}}" aria-label="GitHub">
+          <svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="container hero-inner">
+        <span class="icon-frame"><img src="icon.png" alt="" width="112" height="112"></span>
+        <h1 class="wordmark">AIPin</h1>
+        <p class="hero-lede">
+          <span lang="zh-CN">《魔兽世界：Forever》插件：让 AI 助手把 NPC 和地点标在你的地图上，并读取你的角色信息。</span>
+          <span lang="en">A World of Warcraft: Forever addon that lets your AI assistant pin NPCs and places on your map and read your character info.</span>
+        </p>
+        <a class="btn btn-primary" href="{{DOWNLOAD_URL}}">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16"/></svg>
+          <span lang="zh-CN">下载 AIPin</span><span lang="en">Download AIPin</span>
+          <span class="btn-version">v{{VERSION}}</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="container">
+        <header class="section-head">
+          <h2><span lang="zh-CN">功能</span><span lang="en">Features</span></h2>
+          <div class="flourish" aria-hidden="true"><span></span></div>
+        </header>
+        <div class="feature-grid">
+          <article class="card">
+            <h3><span lang="zh-CN">地图标记</span><span lang="en">Map pins</span></h3>
+            <p><span lang="zh-CN">NPC 和地点会标在世界地图上，同时设置游戏自带的导航箭头；装了 TomTom 也会加一个 TomTom 路点。</span><span lang="en">NPCs and places are marked on the world map with the game's waypoint arrow, plus a TomTom waypoint if TomTom is installed.</span></p>
+          </article>
+          <article class="card">
+            <h3><span lang="zh-CN">助手推送</span><span lang="en">Assistant push</span></h3>
+            <p><span lang="zh-CN">能改你电脑文件的助手可以直接编辑 <code>Inbox.lua</code>，你点小地图按钮同步后标记就会导入。</span><span lang="en">An assistant that can edit files on your computer writes pins into <code>Inbox.lua</code>; they are imported when you click the minimap button to sync.</span></p>
+          </article>
+          <article class="card">
+            <h3><span lang="zh-CN">角色信息</span><span lang="en">Character snapshot</span></h3>
+            <p><span lang="zh-CN">等级、经验、金币、位置、天赋、专业、任务进度、装备、背包和炉石保存在 SavedVariables（<code>AIPinChars</code>），助手可以读取。</span><span lang="en">Level, XP, money, location, talents, professions, quest progress, gear, bags and hearthstone are saved to SavedVariables (<code>AIPinChars</code>) for your assistant to read.</span></p>
+          </article>
+          <article class="card">
+            <h3><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></h3>
+            <p><span lang="zh-CN">左键同步，右键打开标记列表。</span><span lang="en">Left-click to sync, right-click to open the pin list.</span></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="install">
+      <div class="container">
+        <header class="section-head">
+          <h2><span lang="zh-CN">安装</span><span lang="en">Install</span></h2>
+          <div class="flourish" aria-hidden="true"><span></span></div>
+        </header>
+
+        <div class="install-grid">
+          <div>
+            <ol class="howto">
+              <li><span lang="zh-CN">下载 <a href="{{DOWNLOAD_URL}}">AIPin.zip</a>，然后完全退出游戏。</span><span lang="en">Download <a href="{{DOWNLOAD_URL}}">AIPin.zip</a>, then quit the game completely.</span></li>
+              <li><span lang="zh-CN">解压，把 <code>AIPin</code> 文件夹放进 <code>_forever_/Interface/AddOns/</code>。</span><span lang="en">Unzip it and put the <code>AIPin</code> folder in <code>_forever_/Interface/AddOns/</code>.</span></li>
+              <li><span lang="zh-CN">启动游戏，在角色选择界面点「插件」，勾选 AIPin。</span><span lang="en">Start the game, click AddOns on the character select screen and enable AIPin.</span></li>
+            </ol>
+
+            <h3 class="sub-head" id="update"><span lang="zh-CN">更新</span><span lang="en">Updating</span></h3>
+            <ol class="howto">
+              <li><span lang="zh-CN">退出游戏，下载新的 <a href="{{DOWNLOAD_URL}}">AIPin.zip</a>。</span><span lang="en">Quit the game and download the new <a href="{{DOWNLOAD_URL}}">AIPin.zip</a>.</span></li>
+              <li><span lang="zh-CN">删掉旧的 <code>AIPin</code> 文件夹，换成新的。</span><span lang="en">Delete the old <code>AIPin</code> folder and put the new one in its place.</span></li>
+            </ol>
+            <p class="note"><span lang="zh-CN">标记和角色信息保存在 <code>_forever_/WTF/Account/&lt;账号&gt;/SavedVariables/AIPin.lua</code>，替换插件文件夹不会丢失。</span><span lang="en">Pins and character data are stored in <code>_forever_/WTF/Account/&lt;account&gt;/SavedVariables/AIPin.lua</code> and are kept when you replace the addon folder.</span></p>
+            <p class="note"><span lang="zh-CN">如果助手用 <code>Inbox.lua</code> 推送过标记，替换前先备份旧的 <code>Inbox.lua</code>，换完再放回去，否则之后的推送可能不会被导入。</span><span lang="en">If your assistant has pushed pins through <code>Inbox.lua</code>, back up the old <code>Inbox.lua</code> before replacing the folder and copy it back afterwards; otherwise later pushes may not be imported.</span></p>
+          </div>
+
+          <div class="install-side">
+            <div class="code" data-copy>
+              <div class="code-head">Windows</div>
+              <pre><code>C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns\</code></pre>
+            </div>
+            <div class="code" data-copy>
+              <div class="code-head">macOS</div>
+              <pre><code>/Applications/World of Warcraft/_forever_/Interface/AddOns/</code></pre>
+            </div>
+            <div class="code">
+              <div class="code-head"><span lang="zh-CN">正确的结构</span><span lang="en">Expected layout</span></div>
+              <pre><code>AddOns/
+└── AIPin/
+    ├── AIPin.toc
+    └── …</code></pre>
+            </div>
+            <p class="note"><span lang="zh-CN">不要多套一层 <code>AIPin/AIPin/</code>。游戏装在别处的话，在战网客户端 Forever 的齿轮菜单里打开游戏文件夹。</span><span lang="en">Avoid a double <code>AIPin/AIPin/</code> folder. If the game is installed elsewhere, open its folder from the gear menu next to Forever in the Battle.net app.</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="usage">
+      <div class="container">
+        <header class="section-head">
+          <h2><span lang="zh-CN">用法</span><span lang="en">Usage</span></h2>
+          <div class="flourish" aria-hidden="true"><span></span></div>
+        </header>
+
+        <div class="usage">
+          <p class="note"><span lang="zh-CN">把助手给你的指令粘贴到聊天框。坐标是地图百分比（0–100），和 Wowhead 一样；省略区域则用当前地图。按 <kbd>M</kbd> 查看标记。</span><span lang="en">Paste the command from your assistant into chat. Coordinates are map percentages (0–100), the same as Wowhead; leave out the zone to use your current map. Press <kbd>M</kbd> to see the pin. In-game messages are in Simplified Chinese.</span></p>
+
+          <div class="code" data-copy>
+            <div class="code-head"><span lang="zh-CN">示例</span><span lang="en">Examples</span></div>
+            <pre><code lang="zh-CN">/aipin 丹莫罗 44.1 57.1 巡山人格雷琴
+/aipin 44.1 57.1 巡山人格雷琴</code><code lang="en">/aipin Dun Morogh 44.1 57.1 Mountaineer Gretchen
+/aipin 44.1 57.1 Mountaineer Gretchen</code></pre>
+          </div>
+
+          <dl class="cmd-list card">
+            <div><dt><code>/aipin &lt;<span lang="zh-CN">区域</span><span lang="en">zone</span>&gt; &lt;x&gt; &lt;y&gt; &lt;<span lang="zh-CN">名称</span><span lang="en">title</span>&gt;</code></dt><dd><span lang="zh-CN">添加标记</span><span lang="en">Add a pin</span></dd></div>
+            <div><dt><code>/ap</code></dt><dd><span lang="zh-CN"><code>/aipin</code> 的简写</span><span lang="en">Short for <code>/aipin</code></span></dd></div>
+            <div><dt><code>/aipin list</code></dt><dd><span lang="zh-CN">列出标记</span><span lang="en">List pins</span></dd></div>
+            <div><dt><code>/aipin clear</code></dt><dd><span lang="zh-CN">清除全部标记</span><span lang="en">Remove all pins</span></dd></div>
+            <div><dt><code>/aipin help</code></dt><dd><span lang="zh-CN">显示帮助</span><span lang="en">Show help</span></dd></div>
+            <div><dt><code>/aipin me</code></dt><dd><span lang="zh-CN">显示角色简要信息</span><span lang="en">Show a short character summary</span></dd></div>
+            <div><dt><code>/aipin sync</code></dt><dd><span lang="zh-CN">同步：保存角色信息并导入助手推送的标记（会重载界面）</span><span lang="en">Sync: save the character snapshot and import assistant pins (reloads the UI)</span></dd></div>
+            <div><dt><code>/aipin minimap</code></dt><dd><span lang="zh-CN">显示 / 隐藏小地图按钮</span><span lang="en">Show / hide the minimap button</span></dd></div>
+            <div><dt><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></dt><dd><span lang="zh-CN">左键同步（同 <code>/aipin sync</code>），右键打开标记列表</span><span lang="en">Left-click to sync (same as <code>/aipin sync</code>), right-click for the pin list</span></dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="agents">
+      <div class="container container-narrow">
+        <header class="section-head">
+          <h2><span lang="zh-CN">给 AI 助手</span><span lang="en">For AI assistants</span></h2>
+          <div class="flourish" aria-hidden="true"><span></span></div>
+        </header>
+
+        <p class="note"><span lang="zh-CN">把 <a href="{{AGENTS_URL}}">AGENTS.md</a> 交给你的 AI 助手（插件文件夹里也有一份）。要点：</span><span lang="en">Give <a href="{{AGENTS_URL}}">AGENTS.md</a> to your AI assistant (a copy is also in the addon folder). In short:</span></p>
+        <ul class="agent-list">
+          <li><span lang="zh-CN">回复一行 <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code>，让玩家粘贴到聊天框。</span><span lang="en">Reply with <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code> for the player to paste into chat.</span></li>
+          <li><span lang="zh-CN">或编辑 <code>Interface/AddOns/AIPin/Inbox.lua</code>：<code>version</code> 加 1，<code>pins</code> 里写新标记，然后让玩家点小地图按钮同步。</span><span lang="en">Or edit <code>Interface/AddOns/AIPin/Inbox.lua</code>: bump <code>version</code> by 1, add the new pins to <code>pins</code>, then ask the player to click the minimap button.</span></li>
+          <li><span lang="zh-CN">从 <code>WTF/Account/*/SavedVariables/AIPin.lua</code> 读取 <code>AIPinChars</code> 角色信息（只读，取 <code>updated</code> 最新的一条）。</span><span lang="en">Read character data from <code>AIPinChars</code> in <code>WTF/Account/*/SavedVariables/AIPin.lua</code> (read-only; use the entry with the newest <code>updated</code>).</span></li>
+        </ul>
+        <a class="btn btn-ghost" href="{{AGENTS_URL}}"><span lang="zh-CN">查看 AGENTS.md</span><span lang="en">Read AGENTS.md</span></a>
+      </div>
+    </section>
+
+    <!-- Generated from AIPin/CHANGELOG.md by build.mjs -->
+    <section class="section" id="changelog">
+      <div class="container container-narrow">
+        <header class="section-head">
+          <h2><span lang="zh-CN">更新日志</span><span lang="en">Changelog</span></h2>
+          <div class="flourish" aria-hidden="true"><span></span></div>
+        </header>
+        <div class="timeline">
+      {{CHANGELOG}}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p><a href="{{REPO_URL}}">GitHub</a> · MIT © 2026 disinfeqt</p>
+      <p>
+        <span lang="zh-CN">AIPin 是玩家自制插件，与暴雪娱乐（Blizzard Entertainment）无关。</span>
+        <span lang="en">AIPin is a fan-made addon and is not affiliated with Blizzard Entertainment.</span>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
