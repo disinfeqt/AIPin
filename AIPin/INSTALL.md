@@ -59,6 +59,13 @@ Writing under `Program Files` can need an elevated shell. If access is denied, a
 Manual steps for the user: quit the game → download the zip above → unzip → put the `AIPin` folder in
 `_forever_/Interface/AddOns/` → start the game and enable AIPin under AddOns.
 
-**After setup**, read AGENTS.md (in the addon folder, or https://wow.duxi.ao/AGENTS.md) to learn how to use AIPin,
-then tell the user in a sentence or two what you can do: pin NPCs and places on their map, add todos that remind them
-when they reach a zone, read their character after they right-click the AIPin button to sync, and suggest what to craft.
+**After setup**, read AGENTS.md (in the addon folder, or https://wow.duxi.ao/AGENTS.md) to learn how to use AIPin.
+Then look for `AIPinChars` in `<Forever>/WTF/Account/*/SavedVariables/AIPin.lua`:
+
+- **Found it** (an update): read the newest character and offer one concrete next step from it, such as a quest that's
+  almost done or a profession ready for its next trainer.
+- **Not there yet** (a new install): ask the user to log in, right-click the AIPin minimap button to sync, and open each
+  profession window once so its recipes are saved. After that you can read their character.
+
+Finally, tell the user in a sentence or two what you can do: pin NPCs and places on their map, add todos that remind
+them when they reach a zone, plan around their level, quests, gold and professions, and suggest what to craft.
