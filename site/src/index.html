@@ -71,21 +71,15 @@
             <span lang="zh-CN">下载 AIPin</span><span lang="en">Download AIPin</span>
             <span class="btn-version">v{{VERSION}}</span>
           </a>
-          <div class="agent-cta" data-copy>
-            <span class="agent-cta-tag">
-              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9zM18.5 15l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z"/></svg>
-              <span lang="zh-CN">AI 安装</span><span lang="en">AI setup</span>
-            </span>
-            <p class="agent-cta-text">
-              <span lang="zh-CN" data-copy-src>阅读 <span class="agent-cta-url">{{INSTALL_PROMPT_URL}}</span>，帮我安装 AIPin，并学会怎么用它。</span>
-              <span lang="en" data-copy-src>Read <span class="agent-cta-url">{{INSTALL_PROMPT_URL}}</span>, then install AIPin for me and learn how to use it.</span>
-            </p>
-            <span class="agent-cta-copy" data-copy-slot></span>
-          </div>
+          <button type="button" class="btn btn-ghost btn-agent" data-copy-prompt="agent-prompt">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9zM18.5 15l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z"/></svg>
+            <span class="idle"><span lang="zh-CN">复制 AI 安装指令</span><span lang="en">Copy AI setup prompt</span></span>
+            <span class="done"><span lang="zh-CN">已复制，发给 AI 助手</span><span lang="en">Copied, paste to your AI</span></span>
+          </button>
         </div>
-        <p class="hero-hint">
-          <span lang="zh-CN">手动下载安装，或者复制这句话发给 Claude Code、Codex 等能操作电脑的 AI 助手：它会帮你装好插件，并学会给你标地图、加待办、读角色信息。</span>
-          <span lang="en">Install it yourself, or copy this line to an AI assistant that can work on your computer, such as Claude Code or Codex. It sets the addon up and learns how to pin places, add todos and read your character.</span>
+        <p class="hero-prompt" id="agent-prompt">
+          <span lang="zh-CN">发给 Claude Code、Codex 等 AI 助手：<span data-copy-src>阅读 <span class="hero-prompt-url">{{INSTALL_PROMPT_URL}}</span>，帮我安装 AIPin，并学会怎么用它。</span></span>
+          <span lang="en">For Claude Code, Codex and similar: <span data-copy-src>Read <span class="hero-prompt-url">{{INSTALL_PROMPT_URL}}</span>, install AIPin and learn to use it.</span></span>
         </p>
       </div>
     </section>

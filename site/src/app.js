@@ -41,11 +41,10 @@
     });
   });
 
-  // Copy buttons for [data-copy] blocks: code blocks (.code-head + pre code)
-  // and the hero's agent prompt ([data-copy-slot] + [data-copy-src]). A block
-  // may hold one source per language; copy the one that is shown.
+  // Copy buttons for .code[data-copy]. A block may hold one <code> per
+  // language; copy the one that is shown.
   function shownCode(block) {
-    var codes = block.querySelectorAll('pre code, [data-copy-src]');
+    var codes = block.querySelectorAll('pre code');
     for (var i = 0; i < codes.length; i++) {
       var lang = codes[i].getAttribute('lang');
       if (!lang || lang === root.lang) return codes[i];
@@ -69,8 +68,8 @@
     });
   }
 
-  document.querySelectorAll('[data-copy]').forEach(function (block) {
-    var head = block.querySelector('[data-copy-slot], .code-head');
+  document.querySelectorAll('.code[data-copy]').forEach(function (block) {
+    var head = block.querySelector('.code-head');
     if (!head) return;
     var btn = document.createElement('button');
     btn.type = 'button';
@@ -89,5 +88,26 @@
       }, function () {});
     });
     head.appendChild(btn);
+  });
+
+  // Hero button that copies the AI setup prompt shown under it, in the current language.
+  document.querySelectorAll('[data-copy-prompt]').forEach(function (btn) {
+    var box = document.getElementById(btn.getAttribute('data-copy-prompt'));
+    if (!box) return;
+    var timer;
+    btn.addEventListener('click', function () {
+      var srcs = box.querySelectorAll('[data-copy-src]');
+      var src = srcs[0];
+      for (var i = 0; i < srcs.length; i++) {
+        var owner = srcs[i].closest('[lang]');
+        if (owner && owner.getAttribute('lang') === root.lang) { src = srcs[i]; break; }
+      }
+      if (!src) return;
+      copyText(src.textContent.replace(/\s+/g, ' ').trim()).then(function () {
+        btn.classList.add('is-done');
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.classList.remove('is-done'); }, 2000);
+      }, function () {});
+    });
   });
 })();
