@@ -80,28 +80,42 @@
           <div class="flourish" aria-hidden="true"><span></span></div>
         </header>
         <div class="feature-grid">
-          <article class="card">
+          <article class="card feature feature-wide">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+            </span>
             <h3><span lang="zh-CN">地图标记</span><span lang="en">Map pins</span></h3>
-            <p><span lang="zh-CN">NPC 和地点会标在世界地图上，同时设置游戏自带的导航箭头。</span><span lang="en">NPCs and places are marked on the world map with the game's waypoint arrow.</span></p>
+            <p><span lang="zh-CN">NPC 和地点直接标在世界地图上，可以同时显示多个标记。鼠标悬停显示名字和坐标。</span><span lang="en">NPCs and places are pinned right on the world map, several at once. Hover a pin to see its name and coordinates.</span></p>
           </article>
-          <article class="card">
+          <article class="card feature feature-wide">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m4 6 1.5 1.5 3-3"/><path d="M11.5 6H20"/><path d="m4 12 1.5 1.5 3-3"/><path d="M11.5 12H20"/><rect x="4.25" y="17" width="4" height="4" rx="1"/><path d="M11.5 19H20"/></svg>
+            </span>
+            <h3><span lang="zh-CN">待办清单 &amp; 地理提醒</span><span lang="en">Todos &amp; geo-reminders</span></h3>
+            <p><span lang="zh-CN">添加待办，给它设一个区域，到了就提醒。只写区域名就行，比如 <code>@ 暴风城</code>，不用背坐标。</span><span lang="en">Add a todo, attach a zone, and get reminded when you arrive. A zone name such as <code>@ Stormwind</code> is enough; no coordinates needed.</span></p>
+          </article>
+          <article class="card feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v8m-3-3 3 3 3-3"/><path d="M3.5 14H8l1.5 2.5h5L16 14h4.5"/><path d="M5.5 7.5 3.5 14v5a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-5l-2-6.5"/></svg>
+            </span>
             <h3><span lang="zh-CN">助手推送</span><span lang="en">Assistant push</span></h3>
-            <p><span lang="zh-CN">能改你电脑文件的助手可以直接编辑 <code>Inbox.lua</code>，你点小地图按钮同步后标记就会导入。</span><span lang="en">An assistant that can edit files on your computer writes pins into <code>Inbox.lua</code>; they are imported when you click the minimap button to sync.</span></p>
+            <p><span lang="zh-CN">能改你电脑文件的 AI 助手可以直接编辑 <code>Inbox.lua</code>，推送标记和待办，同步后自动导入。</span><span lang="en">An AI agent that can edit files on your computer writes pins and todos into <code>Inbox.lua</code>; they are imported on the next sync.</span></p>
           </article>
-          <article class="card">
+          <article class="card feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6z"/><circle cx="12" cy="10" r="2.2"/><path d="M8.5 16c.8-1.7 2-2.5 3.5-2.5s2.7.8 3.5 2.5"/></svg>
+            </span>
             <h3><span lang="zh-CN">角色信息</span><span lang="en">Character snapshot</span></h3>
-            <p><span lang="zh-CN">等级、经验、金币、位置、天赋、专业、任务进度、装备、背包和炉石保存在 SavedVariables（<code>AIPinChars</code>），助手可以读取。</span><span lang="en">Level, XP, money, location, talents, professions, quest progress, gear, bags and hearthstone are saved to SavedVariables (<code>AIPinChars</code>) for your assistant to read.</span></p>
+            <p><span lang="zh-CN">等级、经验、金币、位置、天赋、专业、任务进度等保存在 <code>AIPinChars</code>，助手可以读取。</span><span lang="en">Level, XP, money, location, talents, professions, quest progress and more are saved to <code>AIPinChars</code> for your assistant to read.</span></p>
           </article>
-          <article class="card">
+          <article class="card feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="8"/><path d="m14.5 9.5-2.2 5.3-5.3 2.2 2.2-5.3z"/><circle class="feature-icon-badge" cx="19" cy="5" r="3"/></svg>
+            </span>
             <h3><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></h3>
-            <p><span lang="zh-CN">左键打开标记列表，右键同步。</span><span lang="en">Left-click to open the pin list, right-click to sync.</span></p>
+            <p><span lang="zh-CN">左键打开面板（待办 / 标记两个标签页），右键同步。角标显示未完成的待办数量。</span><span lang="en">Left-click opens the panel with Todos and Pins tabs; right-click syncs. A badge shows how many todos are still open.</span></p>
           </article>
         </div>
-            <div class="feature">
-              <h3><span lang="zh-CN">待办清单 & 地理提醒</span><span lang="en">Todo list & geo-reminders</span></h3>
-              <p><span lang="zh-CN">添加待办事项，设置地点后走近自动弹窗提醒。小地图按钮显示未完成数量，面板里直接输入、勾选和删除。</span><span lang="en">Add todos with optional locations. Get reminded when you walk near a spot. The minimap button shows the undone count. Manage everything from the panel.</span></p>
-            </div>
-
       </div>
     </section>
 
