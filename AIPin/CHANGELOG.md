@@ -1,5 +1,16 @@
 # CHANGELOG / 更新日志
 
+## 1.3.2 - 2026-11-05
+
+- 修复：1.3.1 的下载包漏掉了新面板和只写区域名的待办提醒，装上后还是旧面板（没有图标、版本号和标签页）。
+- 面板重新设计：圆角半透明窗口、更宽松的间距、扁平按钮、行悬停高亮；待办右侧显示提醒区域；底部显示同步状态和「同步」按钮。
+- 标题栏的版本号改为从 AIPin.toc 读取；图标加载失败时自动换成游戏内置图标。
+- AGENTS.md 新增安装 / 更新步骤，AI 助手可以直接帮你装好插件。
+- Fix: the 1.3.1 download was missing the new panel and zone-only todo reminders, so it still showed the old panel (no icon, version or tabs).
+- Redesigned panel: rounded translucent window, roomier spacing, flat buttons, row hover; todos show their reminder zone; footer shows sync status and a Sync button.
+- The header version is read from AIPin.toc; a built-in icon is used if the AIPin icon can't be loaded.
+- AGENTS.md now has install / update steps, so an AI assistant can set the addon up for you.
+
 ## 1.3.1 - 2026-11-05
 
 - 重做面板：大窗口 + 两个标签页（待办 / 标记），顶部显示图标和版本号。
