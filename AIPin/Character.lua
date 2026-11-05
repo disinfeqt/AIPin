@@ -64,7 +64,137 @@ local function Talents(s)
   s.talents = t
 end
 
-local function Professions(s)
+-- Learned recipes ---------------------------------------------------------------
+-- The game only exposes recipes while a profession window is open. Each snapshot
+-- tries to read the open window; professions that can't be read keep the recipes
+-- saved by an earlier snapshot.
+
+local function ItemDetails(r, link)
+  if type(link) ~= "string" then return end
+  r.itemID = tonumber(link:match("item:(%d+)"))
+  local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+  local _, _, quality, itemLevel, reqLevel, itemType, itemSubType, _, equipLoc = try(getInfo, link)
+  r.quality, r.itemLevel, r.reqLevel = safe(quality), safe(itemLevel), safe(reqLevel)
+  r.itemType, r.itemSubType = safe(itemType), safe(itemSubType)
+  if safe(equipLoc) and equipLoc ~= "" then r.slot = equipLoc end
+end
+
+-- C_TradeSkillUI (the open profession window). nil if nothing usable is open.
+local function ReadTradeSkillUI()
+  local T = C_TradeSkillUI
+  if not (T and T.GetAllRecipeIDs and T.GetRecipeInfo) then return nil end
+  -- A linked, guild or NPC window shows someone else's recipes.
+  for _, check in ipairs({ "IsTradeSkillLinked", "IsTradeSkillGuild", "IsNPCCrafting" }) do
+    if T[check] and try(T[check]) then return nil end
+  end
+  if T.IsTradeSkillReady and not try(T.IsTradeSkillReady) then return nil end
+  local prof = {}
+  if T.GetTradeSkillLine then
+    local id, name, rank, maxRank, _, parentID, parentName = try(T.GetTradeSkillLine)
+    prof.skillLine, prof.name, prof.rank, prof.max = safe(id), safe(name), safe(rank), safe(maxRank)
+    prof.parentSkillLine, prof.parentName = safe(parentID), safe(parentName)
+  elseif T.GetBaseProfessionInfo then
+    local info = try(T.GetBaseProfessionInfo)
+    if type(info) == "table" then
+      prof.skillLine, prof.name = safe(info.professionID), safe(info.professionName)
+      prof.rank, prof.max = safe(info.skillLevel), safe(info.maxSkillLevel)
+    end
+  end
+  if not (prof.name or prof.skillLine) then return nil end
+  local ids = try(T.GetAllRecipeIDs)
+  if type(ids) ~= "table" or #ids == 0 then return nil end
+  local recipes = {}
+  for _, rid in ipairs(ids) do
+    local info = try(T.GetRecipeInfo, rid)
+    if type(info) == "table" and info.learned then
+      local r = { recipeID = safe(rid), name = safe(info.name), difficulty = safe(info.difficulty) }
+      local link
+      if T.GetRecipeOutputItemData then
+        local out = try(T.GetRecipeOutputItemData, rid)
+        if type(out) == "table" then link = safe(out.hyperlink) or (safe(out.itemID) and ("item:" .. out.itemID)) end
+      end
+      if not link and T.GetRecipeItemLink then link = safe(try(T.GetRecipeItemLink, rid)) end
+      ItemDetails(r, link)
+      if r.name then recipes[#recipes + 1] = r end
+    end
+  end
+  prof.recipes = recipes
+  return prof
+end
+
+-- Classic trade skill API, for clients without C_TradeSkillUI. Only lists known recipes.
+local function ReadClassicTradeSkill()
+  if not (GetTradeSkillLine and GetNumTradeSkills and GetTradeSkillInfo) then return nil end
+  if IsTradeSkillLinked and try(IsTradeSkillLinked) then return nil end
+  local name, rank, maxRank = try(GetTradeSkillLine)
+  name = safe(name)
+  if not name or name == "UNKNOWN" then return nil end
+  local n = safe(try(GetNumTradeSkills)) or 0
+  if n == 0 then return nil end
+  local recipes = {}
+  for i = 1, n do
+    local rname, kind = try(GetTradeSkillInfo, i)
+    if safe(rname) and kind ~= "header" and kind ~= "subheader" then
+      local r = { name = rname, difficulty = safe(kind) }
+      ItemDetails(r, safe(try(GetTradeSkillItemLink, i)))
+      recipes[#recipes + 1] = r
+    end
+  end
+  return { name = name, rank = safe(rank), max = safe(maxRank), recipes = recipes }
+end
+
+local function SameProfession(p, q)
+  if p.skillLine and (p.skillLine == q.skillLine or p.skillLine == q.parentSkillLine) then return true end
+  return p.name ~= nil and (p.name == q.name or p.name == q.parentName)
+end
+
+-- Fresh entries win; fields they lack (e.g. item info not cached yet) come from the
+-- saved copy, and saved recipes the window didn't list are kept.
+local function MergeRecipes(new, old)
+  local saved = {}
+  for _, r in ipairs(old) do local k = r.recipeID or r.name; if k then saved[k] = r end end
+  local out, seen = {}, {}
+  for _, r in ipairs(new) do
+    local k = r.recipeID or r.name
+    if k and not seen[k] then
+      seen[k] = true
+      if saved[k] then for f, v in pairs(saved[k]) do if r[f] == nil then r[f] = v end end end
+      out[#out + 1] = r
+    end
+  end
+  for _, r in ipairs(old) do
+    local k = r.recipeID or r.name
+    if k and not seen[k] then seen[k] = true; out[#out + 1] = r end
+  end
+  return out
+end
+
+local function Recipes(list, old)
+  local ok, open = pcall(ReadTradeSkillUI)
+  if not (ok and open) then ok, open = pcall(ReadClassicTradeSkill) end
+  if ok and open then
+    local hit
+    for _, p in ipairs(list) do if SameProfession(p, open) then hit = p; break end end
+    if not hit then
+      hit = { name = open.parentName or open.name, rank = open.rank, max = open.max, skillLine = open.parentSkillLine or open.skillLine }
+      list[#list + 1] = hit
+    end
+    hit.recipes, hit.recipesUpdated = open.recipes, time()
+  end
+  local before = type(old) == "table" and old.professions
+  if type(before) ~= "table" then return end
+  for _, p in ipairs(list) do
+    for _, q in ipairs(before) do
+      if type(q) == "table" and type(q.recipes) == "table" and SameProfession(p, q) then
+        p.recipes = p.recipes and MergeRecipes(p.recipes, q.recipes) or q.recipes
+        p.recipesUpdated = p.recipesUpdated or q.recipesUpdated
+        break
+      end
+    end
+  end
+end
+
+local function Professions(s, old)
   local list = {}
   local got = false
   if GetProfessions then
@@ -84,6 +214,7 @@ local function Professions(s)
       if name and not isHeader then list[#list+1] = { name = safe(name), rank = safe(rank), max = safe(maxRank) } end
     end
   end
+  pcall(Recipes, list, old)
   s.professions = list
 end
 
@@ -166,7 +297,7 @@ local function Snapshot()
   s.hearth = safe(try(GetBindLocation))
   local old = AIPinChars[key]
   if old then s.timePlayed, s.timePlayedLevel = old.timePlayed, old.timePlayedLevel end
-  for _, f in ipairs({ Location, Talents, Professions, Quests, Gear, Bags }) do pcall(f, s) end
+  for _, f in ipairs({ Location, Talents, Professions, Quests, Gear, Bags }) do pcall(f, s, old) end
   s.updated = time()
   s.updatedText = date("%Y-%m-%d %H:%M:%S")
   AIPinChars[key] = s
@@ -187,7 +318,10 @@ AIPin_SnapshotNow = function() Request(true) end
 
 local f = CreateFrame("Frame")
 for _, e in ipairs({ "PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_LEVEL_UP","QUEST_LOG_UPDATE","ZONE_CHANGED_NEW_AREA",
-  "PLAYER_MONEY","SKILL_LINES_CHANGED","PLAYER_EQUIPMENT_CHANGED","PLAYER_LOGOUT","PLAYER_REGEN_ENABLED","TIME_PLAYED_MSG" }) do
+  "PLAYER_MONEY","SKILL_LINES_CHANGED","PLAYER_EQUIPMENT_CHANGED","PLAYER_LOGOUT","PLAYER_REGEN_ENABLED","TIME_PLAYED_MSG",
+  -- Profession window open/updated: the only time recipes can be read. Not every
+  -- client has every event; unknown ones are skipped by the pcall.
+  "TRADE_SKILL_SHOW","TRADE_SKILL_LIST_UPDATE","TRADE_SKILL_DATA_SOURCE_CHANGED","TRADE_SKILL_UPDATE" }) do
   pcall(f.RegisterEvent, f, e)
 end
 f:SetScript("OnEvent", function(_, ev, a1, a2)

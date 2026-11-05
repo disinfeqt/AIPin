@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.0 - 2026-11-05
+
+- 角色信息新增已学的专业图样，AI 助手可以据此推荐做什么装备。
+- Character snapshot now includes learned profession recipes, so your AI assistant can suggest what to craft.
+
 ## 1.3.2 - 2026-11-05
 
 - 新面板样式：半透明圆角窗口，底部加「同步」按钮。

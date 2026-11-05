@@ -70,7 +70,8 @@ Manual steps for the user: quit the game → download the zip above → unzip �
 `_forever_/Interface/AddOns/` → start the game and enable AIPin under AddOns.
 
 **After setup**, tell the user in a sentence or two what you can now do for them: pin NPCs/places on their map,
-add todos that remind them when they reach a zone, and read their character after they right-click the AIPin button to sync.
+add todos that remind them when they reach a zone, read their character after they right-click the AIPin button to sync,
+and suggest what to craft from their learned recipes.
 
 ---
 
@@ -202,7 +203,9 @@ AIPinChars["Name-Realm"] = {
   timePlayed, timePlayedLevel (seconds; only after /played),
   zone, subzone, mapName, uiMapID, x, y (percent, 1 decimal),
   talents = { tabs = { {name, points}, ... }, spec, loadout },
-  professions = { {name, rank, max, skillLine}, ... },
+  professions = { {name, rank, max, skillLine, recipesUpdated, recipes = {
+    {recipeID, name, difficulty, itemID, quality, itemLevel, reqLevel, slot, itemType, itemSubType}, ...
+  }}, ... },
   quests = { {questID, title, level, isComplete, objectives = { {text, have, need, done}, ... }}, ... },
   equipment = { HeadSlot = {link, name, itemLevel}, ... },
   bagFree, bagTotal,
@@ -211,6 +214,23 @@ AIPinChars["Name-Realm"] = {
 ```
 
 In-game summary: `/aipin me`.
+
+### Learned recipes → what to craft
+
+Each profession can carry a `recipes` list: the recipes the character has **learned**. Use it to recommend gear the player can make,
+for example an upgrade for a slot where `equipment` is weak, or something to sell.
+
+- `name`: recipe name. `difficulty`: skill-up colour (`optimal` / `medium` / `easy` / `trivial`; `optimal` = orange, best for leveling the skill).
+- Crafted item (missing for enchants and when the game hasn't cached the item yet): `itemID`, `quality` (0 poor, 1 common, 2 uncommon,
+  3 rare, 4 epic), `itemLevel`, `reqLevel` (character level needed to use it), `slot` (equip slot such as `INVTYPE_CHEST`),
+  `itemType` / `itemSubType` (e.g. `Armor` / `Cloth`).
+- Compare `slot`, `itemLevel` and `reqLevel` with `equipment` and `level` to suggest real upgrades. Don't recommend items the
+  character can't wear (check `itemSubType` against `class`) or can't use yet (`reqLevel` above `level`).
+- The game only exposes recipes while a profession window is open. AIPin reads them whenever the player opens one and keeps them
+  afterwards; `recipesUpdated` (unix time) says when that profession was last read.
+- No `recipes` for a profession, or it's stale? Ask the player to open that profession's window in game (from the spellbook),
+  then right-click the AIPin button to sync, and read the file again.
+- Recipes from someone else's linked profession window are never saved.
 
 ---
 
@@ -239,4 +259,5 @@ Footer: last sync time, inbox version and a 同步 button.
 3. To mark a place: bump `Inbox.lua` version + add pin; tell user to right-click AIPin. Also paste `/aipin ...` as backup.
 4. To remind the player later: add a todo — zone-only `@ 暴风城` or coord `@ 暴风城 63.9 69.1`.
 5. To know what the player is doing: read `SavedVariables/AIPin.lua` → `AIPinChars` after a sync.
-6. Never write SavedVariables yourself.
+6. To suggest what to craft: use `professions[i].recipes` (learned recipes) against `equipment` and `level`.
+7. Never write SavedVariables yourself.
