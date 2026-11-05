@@ -23,3 +23,5 @@ Create a project from this repo with **Root Directory** `site`. `vercel.json` se
 - Framework preset: Other
 - Build command: `npm run build`
 - Output directory: `dist`
+
+Web Analytics: the page loads `/_vercel/insights/script.js`. Turn on Analytics in the project's Analytics tab; until then the script 404s and nothing is tracked.
