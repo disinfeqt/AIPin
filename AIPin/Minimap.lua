@@ -80,7 +80,8 @@ local function CreatePanel()
   local sync = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   sync:SetSize(100, 22); sync:SetPoint("BOTTOMRIGHT", -10, 10); sync:SetText("同步")
   sync:SetScript("OnClick", AIPin_Sync)
-  panel:SetScript("OnShow", RefreshPanel)
+  panel:SetScript("OnShow", function() RefreshPanel(); if AIPin_TodoRefresh then AIPin_TodoRefresh() end end)
+  if AIPin_TodoAttach then pcall(AIPin_TodoAttach, panel) end
   panel:Hide()
   if UISpecialFrames then table.insert(UISpecialFrames, "AIPinPanel") end
 end
@@ -135,7 +136,7 @@ local function CreateButton()
   btn:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("AIPin")
-    GameTooltip:AddLine("左键：打开标记列表", 1, 1, 1)
+    GameTooltip:AddLine("左键：打开标记和待办列表", 1, 1, 1)
     GameTooltip:AddLine("右键：同步（保存角色信息、导入助手标记）", 1, 1, 1)
     GameTooltip:AddLine("拖动：移动按钮", 1, 1, 1)
     GameTooltip:AddLine("上次同步 " .. Ago(DB().lastSync), 0.7, 0.7, 0.7)

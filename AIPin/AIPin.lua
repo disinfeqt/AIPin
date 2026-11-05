@@ -16,7 +16,7 @@ local L = {
   badArgs = "|cffffd100AIPin:|r 用法: /aipin [区域] <x> <y> [名称]  |  /aipin clear  |  /aipin list",
   noMap = "|cffffd100AIPin:|r 无法解析地图，请带上区域名，例如: /aipin 丹莫罗 44.1 57.1 巡山人格雷琴",
   unknownZone = "|cffffd100AIPin:|r 未知区域: %s（改用当前地图）",
-  help = "|cffffd100AIPin|r 用法:\n  /aipin [区域] <x> <y> [名称]\n  /aipin clear — 清除标记\n  /aipin list — 列出标记\n  /aipin me — 查看角色信息\n  /aipin sync — 同步（保存并重载界面）\n  /aipin minimap — 显示/隐藏小地图按钮\n示例: /aipin 丹莫罗 44.1 57.1 巡山人格雷琴",
+  help = "|cffffd100AIPin|r 用法:\n  /aipin [区域] <x> <y> [名称]\n  /aipin clear — 清除标记\n  /aipin list — 列出标记\n  /aipin me — 查看角色信息\n  /aipin sync — 同步（保存并重载界面）\n  /aipin minimap — 显示/隐藏小地图按钮\n  /aipin todo <内容> [@ 区域 x y] — 添加待办/地理提醒\n  /aipin todos | done N | undone N | deltodo N | cleartodos\n示例: /aipin 丹莫罗 44.1 57.1 巡山人格雷琴",
 }
 
 -- Forever uiMapIDs (EN + ZH). Source: forever.azerpug.com/zones
@@ -460,7 +460,7 @@ local function RemovePin(i)
   RefreshMap()
 end
 
-AIPin_API = { Print = Print, MapName = MapName, ClearPins = ClearPins, RemovePin = RemovePin, EnsureDB = EnsureDB }
+AIPin_API = { Print = Print, MapName = MapName, ClearPins = ClearPins, RemovePin = RemovePin, EnsureDB = EnsureDB, ResolveZone = ResolveZone, Trim = Trim }
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
