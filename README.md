@@ -87,7 +87,7 @@ AIPin is a World of Warcraft: Forever addon (Interface 16001) that lets your AI 
 - **Map pins**: NPCs and places are marked on the world map with the game's waypoint arrow, plus a [TomTom](https://www.curseforge.com/wow/addons/tomtom) waypoint if TomTom is installed.
 - **Two ways to pin**: paste the assistant's `/aipin <zone> <x> <y> <title>` line into chat, or let an assistant that can edit files on your computer write to `Inbox.lua`, then click the minimap button to sync (this reloads the UI).
 - **Character snapshot**: level, XP, money, location, talents, professions, quest progress, gear, bags and hearthstone are saved to SavedVariables (`AIPinChars`) for your assistant to read.
-- **Minimap button**: left-click to sync, right-click to open the pin list.
+- **Minimap button**: left-click to open the pin list, right-click to sync.
 
 In-game messages are in Simplified Chinese. Zone names work in English or Chinese.
 
@@ -136,7 +136,7 @@ Coordinates are map percentages (0–100), the same as Wowhead; leave out the zo
 | `/aipin sync` | Sync: save the character snapshot and import assistant pins (reloads the UI) |
 | `/aipin minimap` | Show / hide the minimap button |
 
-Minimap button: left-click to sync (same as `/aipin sync`), right-click for the pin list.
+Minimap button: left-click for the pin list, right-click to sync (same as `/aipin sync`).
 
 ### For AI assistants
 

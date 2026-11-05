@@ -1,5 +1,14 @@
 # CHANGELOG / 更新日志
 
+## 1.1.2 - 2026-11-05
+
+- 小地图按钮：左键打开标记列表，右键同步（避免误触重载界面）。
+- 标记列表改为两行显示（名字 / 地区和坐标），长名字不再重叠。
+- 同一地点的重复标记会合并，不再出现两条。
+- Minimap button: left-click opens the pin list, right-click syncs.
+- Pin list rows are two lines (title / zone + coords); long titles no longer overlap.
+- Duplicate pins at the same spot are merged.
+
 ## 1.1.1 - 2026-11-05
 
 - 暴雪自带的导航点不再只显示「地图标记分享」：鼠标悬停和屏幕上的导航图标会显示 AIPin 标记的名字。

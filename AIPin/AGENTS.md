@@ -78,4 +78,4 @@ The player can run `/aipin me` to see a short summary in-game.
 
 ## Minimap button / sync (v1.1)
 
-Instead of asking the player to type `/reload`, you can say: "点小地图旁的 AIPin 按钮" (left-click = sync). Sync takes a snapshot, sets `AIPinDB.lastSync = time()`, then reloads the UI — which writes SavedVariables (character data) and imports Inbox.lua. Equivalent command: `/aipin sync`. Blocked in combat. Right-click opens the pin list. `/aipin minimap` toggles the button (`AIPinDB.minimapHidden`); its position is `AIPinDB.minimapAngle`.
+Instead of asking the player to type `/reload`, you can say: "点小地图旁的 AIPin 按钮" (right-click = sync). Sync takes a snapshot, sets `AIPinDB.lastSync = time()`, then reloads the UI — which writes SavedVariables (character data) and imports Inbox.lua. Equivalent command: `/aipin sync`. Blocked in combat. Left-click opens the pin list. `/aipin minimap` toggles the button (`AIPinDB.minimapHidden`); its position is `AIPinDB.minimapAngle`.

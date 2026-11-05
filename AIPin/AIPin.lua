@@ -277,7 +277,19 @@ local function AddPin(uiMapID, xPct, yPct, title)
     title = title or "AIPin",
     created = time(),
   }
-  table.insert(AIPinDB.pins, pin)
+  local dup
+  for _, q in ipairs(AIPinDB.pins) do
+    if q.uiMapID == uiMapID and math.abs((q.x or 0) - xPct) < 0.15 and math.abs((q.y or 0) - yPct) < 0.15 then
+      dup = q
+      break
+    end
+  end
+  if dup then
+    dup.title = pin.title
+    pin = dup
+  else
+    table.insert(AIPinDB.pins, pin)
+  end
   while #AIPinDB.pins > MAX_PINS do
     table.remove(AIPinDB.pins, 1)
   end

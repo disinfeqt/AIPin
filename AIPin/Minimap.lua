@@ -26,33 +26,40 @@ local function RefreshPanel()
   if not panel then return end
   local db = DB()
   for _, r in ipairs(rows) do r:Hide() end
+  local ROW = 36
   for i, p in ipairs(db.pins) do
     local r = rows[i]
     if not r then
       r = CreateFrame("Frame", nil, panel)
-      r:SetSize(260, 20)
-      r.text = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-      r.text:SetPoint("LEFT", 4, 0); r.text:SetWidth(220); r.text:SetJustifyH("LEFT")
+      r:SetSize(300, ROW)
+      r.text = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+      r.text:SetPoint("TOPLEFT", 4, -2); r.text:SetPoint("RIGHT", -28, 0)
+      r.text:SetJustifyH("LEFT"); r.text:SetWordWrap(false)
+      r.sub = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+      r.sub:SetPoint("TOPLEFT", r.text, "BOTTOMLEFT", 0, -3); r.sub:SetPoint("RIGHT", -28, 0)
+      r.sub:SetJustifyH("LEFT"); r.sub:SetWordWrap(false)
       r.del = CreateFrame("Button", nil, r, "UIPanelCloseButton")
-      r.del:SetSize(20, 20); r.del:SetPoint("RIGHT", 0, 0)
+      r.del:SetSize(22, 22); r.del:SetPoint("RIGHT", 0, 0)
       rows[i] = r
     end
-    r:SetPoint("TOPLEFT", 10, -30 - (i - 1) * 20)
+    r:ClearAllPoints()
+    r:SetPoint("TOPLEFT", 10, -32 - (i - 1) * ROW)
     local zone = AIPin_API and AIPin_API.MapName and AIPin_API.MapName(p.uiMapID) or tostring(p.uiMapID)
-    r.text:SetText(string.format("%d. %s - %s (%.1f, %.1f)", i, p.title or "?", zone or "?", p.x or 0, p.y or 0))
+    r.text:SetText(string.format("%d. %s", i, p.title or "?"))
+    r.sub:SetText(string.format("%s  %.1f, %.1f", zone or "?", p.x or 0, p.y or 0))
     r.del:SetScript("OnClick", function() if AIPin_API then AIPin_API.RemovePin(i) end; RefreshPanel() end)
     r:Show()
   end
   local n = #db.pins
   panel.empty:SetShown(n == 0)
-  panel:SetHeight(110 + math.max(n, 1) * 20)
+  panel:SetHeight(120 + math.max(n, 1) * ROW)
   panel.info:SetText(string.format("上次同步：%s\n收件箱版本：%s",
     db.lastSync and date("%Y-%m-%d %H:%M", db.lastSync) or "从未", tostring(db.inboxVersion or 0)))
 end
 
 local function CreatePanel()
   panel = CreateFrame("Frame", "AIPinPanel", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-  panel:SetSize(280, 140); panel:SetPoint("CENTER")
+  panel:SetSize(320, 156); panel:SetPoint("CENTER")
   panel:SetFrameStrata("DIALOG"); panel:SetMovable(true); panel:EnableMouse(true)
   panel:RegisterForDrag("LeftButton")
   panel:SetScript("OnDragStart", panel.StartMoving); panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
@@ -110,7 +117,7 @@ local function CreateButton()
   local border = btn:CreateTexture(nil, "OVERLAY")
   border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
   border:SetSize(53, 53); border:SetPoint("TOPLEFT")
-  btn:SetScript("OnClick", function(_, b) if b == "RightButton" then TogglePanel() else AIPin_Sync() end end)
+  btn:SetScript("OnClick", function(_, b) if b == "RightButton" then AIPin_Sync() else TogglePanel() end end)
   btn:SetScript("OnDragStart", function(self)
     self:SetScript("OnUpdate", function()
       local mx, my = Minimap:GetCenter()
@@ -124,8 +131,8 @@ local function CreateButton()
   btn:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("AIPin")
-    GameTooltip:AddLine("左键：同步（保存角色信息、导入助手标记）", 1, 1, 1)
-    GameTooltip:AddLine("右键：标记列表", 1, 1, 1)
+    GameTooltip:AddLine("左键：打开标记列表", 1, 1, 1)
+    GameTooltip:AddLine("右键：同步（保存角色信息、导入助手标记）", 1, 1, 1)
     GameTooltip:AddLine("拖动：移动按钮", 1, 1, 1)
     GameTooltip:AddLine("上次同步 " .. Ago(DB().lastSync), 0.7, 0.7, 0.7)
     GameTooltip:Show()
