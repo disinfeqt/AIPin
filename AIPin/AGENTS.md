@@ -203,7 +203,7 @@ AIPinChars["Name-Realm"] = {
   timePlayed, timePlayedLevel (seconds; only after /played),
   zone, subzone, mapName, uiMapID, x, y (percent, 1 decimal),
   talents = { tabs = { {name, points}, ... }, spec, loadout },
-  professions = { {name, rank, max, skillLine, recipesUpdated, recipes = {
+  professions = { {name, rank, max, skillLine, kind = "crafting"|"gathering", recipesUpdated, recipes = {
     {recipeID, name, difficulty, itemID, quality, itemLevel, reqLevel, slot, itemType, itemSubType}, ...
   }}, ... },
   quests = { {questID, title, level, isComplete, objectives = { {text, have, need, done}, ... }}, ... },
@@ -219,6 +219,11 @@ In-game summary: `/aipin me`.
 
 Each profession can carry a `recipes` list: the recipes the character has **learned**. Use it to recommend gear the player can make,
 for example an upgrade for a slot where `equipment` is weak, or something to sell.
+
+- `kind = "crafting"` (Tailoring, Enchanting, Alchemy, Leatherworking, Blacksmithing, Engineering, Jewelcrafting, Inscription,
+  Cooking, First Aid): `recipes` is filled once the player has opened that profession's window.
+- `kind = "gathering"` (Herbalism, Mining, Skinning, Fishing): only `rank` / `max`, no `recipes`.
+- `professions` only lists professions; weapon skills, languages and the like are left out.
 
 - `name`: recipe name. `difficulty`: skill-up colour (`optimal` / `medium` / `easy` / `trivial`; `optimal` = orange, best for leveling the skill).
 - Crafted item (missing for enchants and when the game hasn't cached the item yet): `itemID`, `quality` (0 poor, 1 common, 2 uncommon,

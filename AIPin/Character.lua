@@ -64,6 +64,30 @@ local function Talents(s)
   s.talents = t
 end
 
+-- Professions: crafting ones have recipes, gathering ones only a skill level.
+-- Matched by skill line ID, or by name (enUS / zhCN) when the API gives no ID.
+local KIND_BY_ID = {
+  [197] = "crafting", [333] = "crafting", [171] = "crafting", [165] = "crafting", [164] = "crafting",
+  [202] = "crafting", [755] = "crafting", [773] = "crafting", [185] = "crafting", [129] = "crafting",
+  [356] = "gathering", [182] = "gathering", [186] = "gathering", [393] = "gathering",
+}
+local KIND_BY_NAME = {}
+for kind, names in pairs({
+  crafting = { "Tailoring", "Enchanting", "Alchemy", "Leatherworking", "Blacksmithing", "Engineering",
+    "Jewelcrafting", "Inscription", "Cooking", "First Aid",
+    "裁缝", "附魔", "炼金术", "炼金", "制皮", "锻造", "工程学", "工程", "珠宝加工", "珠宝", "铭文", "烹饪", "急救" },
+  -- Smelting is Mining's window on classic clients.
+  gathering = { "Fishing", "Herbalism", "Mining", "Skinning", "Smelting",
+    "钓鱼", "草药学", "草药", "采矿", "剥皮", "熔炼" },
+}) do
+  for _, n in ipairs(names) do KIND_BY_NAME[n] = kind end
+end
+
+local function Kind(p)
+  return (p.skillLine and KIND_BY_ID[p.skillLine]) or (p.parentSkillLine and KIND_BY_ID[p.parentSkillLine])
+    or (p.name and KIND_BY_NAME[p.name]) or (p.parentName and KIND_BY_NAME[p.parentName])
+end
+
 -- Learned recipes ---------------------------------------------------------------
 -- The game only exposes recipes while a profession window is open. Each snapshot
 -- tries to read the open window; professions that can't be read keep the recipes
@@ -143,6 +167,27 @@ local function ReadClassicTradeSkill()
   return { name = name, rank = safe(rank), max = safe(maxRank), recipes = recipes }
 end
 
+-- Classic Craft API: Enchanting's window on classic-era clients. Beast Training uses
+-- the same window but has no skill line, so it is skipped.
+local function ReadClassicCraft()
+  if not (GetNumCrafts and GetCraftInfo and GetCraftDisplaySkillLine) then return nil end
+  local name, rank, maxRank = try(GetCraftDisplaySkillLine)
+  name = safe(name)
+  if not name or name == "UNKNOWN" then return nil end
+  local n = safe(try(GetNumCrafts)) or 0
+  if n == 0 then return nil end
+  local recipes = {}
+  for i = 1, n do
+    local cname, _, kind = try(GetCraftInfo, i)
+    if safe(cname) and kind ~= "header" then
+      local r = { name = cname, difficulty = safe(kind) }
+      ItemDetails(r, safe(try(GetCraftItemLink, i)))
+      recipes[#recipes + 1] = r
+    end
+  end
+  return { name = name, rank = safe(rank), max = safe(maxRank), recipes = recipes }
+end
+
 local function SameProfession(p, q)
   if p.skillLine and (p.skillLine == q.skillLine or p.skillLine == q.parentSkillLine) then return true end
   return p.name ~= nil and (p.name == q.name or p.name == q.parentName)
@@ -169,23 +214,30 @@ local function MergeRecipes(new, old)
   return out
 end
 
+local function Read(f) local ok, res = pcall(f); if ok then return res end end
+
 local function Recipes(list, old)
-  local ok, open = pcall(ReadTradeSkillUI)
-  if not (ok and open) then ok, open = pcall(ReadClassicTradeSkill) end
-  if ok and open then
-    local hit
-    for _, p in ipairs(list) do if SameProfession(p, open) then hit = p; break end end
-    if not hit then
-      hit = { name = open.parentName or open.name, rank = open.rank, max = open.max, skillLine = open.parentSkillLine or open.skillLine }
-      list[#list + 1] = hit
+  -- A trade skill window and (on classic) the Enchanting craft window can be open at once.
+  local sources = { Read(ReadTradeSkillUI) or Read(ReadClassicTradeSkill), Read(ReadClassicCraft) }
+  for i = 1, 2 do
+    local open = sources[i]
+    -- Gathering professions only need their skill level (e.g. skip Mining's smelting list).
+    if open and Kind(open) ~= "gathering" then
+      local hit
+      for _, p in ipairs(list) do if SameProfession(p, open) then hit = p; break end end
+      if not hit then
+        hit = { name = open.parentName or open.name, rank = open.rank, max = open.max, skillLine = open.parentSkillLine or open.skillLine }
+        hit.kind = Kind(hit)
+        list[#list + 1] = hit
+      end
+      hit.recipes, hit.recipesUpdated = open.recipes, time()
     end
-    hit.recipes, hit.recipesUpdated = open.recipes, time()
   end
   local before = type(old) == "table" and old.professions
   if type(before) ~= "table" then return end
   for _, p in ipairs(list) do
     for _, q in ipairs(before) do
-      if type(q) == "table" and type(q.recipes) == "table" and SameProfession(p, q) then
+      if p.kind ~= "gathering" and type(q) == "table" and type(q.recipes) == "table" and SameProfession(p, q) then
         p.recipes = p.recipes and MergeRecipes(p.recipes, q.recipes) or q.recipes
         p.recipesUpdated = p.recipesUpdated or q.recipesUpdated
         break
@@ -208,12 +260,17 @@ local function Professions(s, old)
     end
   end
   if not got and GetNumSkillLines then
+    -- Classic skill frame: keep professions, drop weapon skills, languages and the like.
     local n = safe(try(GetNumSkillLines)) or 0
     for i = 1, n do
-      local name, isHeader, _, rank, _, _, maxRank = try(GetSkillLineInfo, i)
-      if name and not isHeader then list[#list+1] = { name = safe(name), rank = safe(rank), max = safe(maxRank) } end
+      local name, isHeader, _, rank, _, _, maxRank, isAbandonable = try(GetSkillLineInfo, i)
+      name = safe(name)
+      if name and not isHeader and (KIND_BY_NAME[name] or isAbandonable) then
+        list[#list+1] = { name = name, rank = safe(rank), max = safe(maxRank) }
+      end
     end
   end
+  for _, p in ipairs(list) do p.kind = Kind(p) end
   pcall(Recipes, list, old)
   s.professions = list
 end
@@ -321,7 +378,8 @@ for _, e in ipairs({ "PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_LEVEL_UP","Q
   "PLAYER_MONEY","SKILL_LINES_CHANGED","PLAYER_EQUIPMENT_CHANGED","PLAYER_LOGOUT","PLAYER_REGEN_ENABLED","TIME_PLAYED_MSG",
   -- Profession window open/updated: the only time recipes can be read. Not every
   -- client has every event; unknown ones are skipped by the pcall.
-  "TRADE_SKILL_SHOW","TRADE_SKILL_LIST_UPDATE","TRADE_SKILL_DATA_SOURCE_CHANGED","TRADE_SKILL_UPDATE" }) do
+  "TRADE_SKILL_SHOW","TRADE_SKILL_LIST_UPDATE","TRADE_SKILL_DATA_SOURCE_CHANGED","TRADE_SKILL_UPDATE",
+  "CRAFT_SHOW","CRAFT_UPDATE" }) do
   pcall(f.RegisterEvent, f, e)
 end
 f:SetScript("OnEvent", function(_, ev, a1, a2)
