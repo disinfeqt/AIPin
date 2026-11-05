@@ -1,5 +1,11 @@
 # CHANGELOG / 更新日志
 
+## 1.2.0 - 2026-11-05
+
+- AIPin 现在自己在世界地图上画标记，支持多个标记同时显示，不需要 TomTom。
+- 鼠标悬停标记会显示名字和坐标。
+- AIPin now draws its own pins on the world map (multiple pins at once, no TomTom needed). Hover shows title and coordinates.
+
 ## 1.1.4 - 2026-11-05
 
 - 移除了 AIPin 自己画的黄色地图标记，它的位置是错的；现在只保留暴雪导航点和 TomTom 标记。

@@ -212,18 +212,59 @@ local function SetNativeWaypoint(uiMapID, x, y, title)
   return true
 end
 
-local function AddTomTom(uiMapID, x, y, title)
-  if TomTom and TomTom.AddWaypoint then
-    pcall(function()
-      TomTom:AddWaypoint(uiMapID, x, y, {
-        title = title or "AIPin",
-        source = "AIPin",
-        world = true,
-        minimap = true,
-        crazy = true,
-      })
-    end)
+-- Own map pins ---------------------------------------------------------
+local provider
+
+local function RefreshOwnPins()
+  if not provider then return end
+  provider:RemoveAllData()
+  local mapID = provider:GetMap():GetMapID()
+  EnsureDB()
+  local canvas = provider:GetMap():GetCanvas()
+  for _, p in ipairs(AIPinDB.pins) do
+    if p.uiMapID == mapID then
+      local pin = provider:AcquirePin()
+      pin.aipinTitle = p.title
+      pin.aipinMap = p.uiMapID
+      pin.aipinX, pin.aipinY = p.x, p.y
+      -- Use normalized 0-1 coordinates; Blizzard's canvas positions pins the same way
+      pin:ClearAllPoints()
+      pin:SetPoint("CENTER", canvas, "TOPLEFT", canvas:GetWidth() * (p.x / 100), -canvas:GetHeight() * (p.y / 100))
+      pin:Show()
+    end
   end
+end
+
+local function HookWorldMap()
+  if provider or not WorldMapFrame or not WorldMapFrame.AddDataProvider then return end
+  provider = CreateFromMixins(MapCanvasDataProviderMixin)
+  provider.GetMap = function(self) return WorldMapFrame end
+  provider.AcquirePin = function(self)
+    local pin = CreateFrame("Frame", nil, self:GetMap():GetCanvas())
+    pin:SetSize(24, 24)
+    pin.tex = pin:CreateTexture(nil, "OVERLAY")
+    pin.tex:SetAllPoints()
+    pin.tex:SetTexture("Interface\\AddOns\\AIPin\\media\\icon")
+    pin:SetScript("OnEnter", function(self)
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      GameTooltip:SetText(self.aipinTitle or "AIPin", 1, 0.82, 0)
+      GameTooltip:AddLine(MapName(self.aipinMap), 0.8, 0.8, 0.8)
+      GameTooltip:AddLine(string.format("%.1f, %.1f", self.aipinX or 0, self.aipinY or 0), 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    self.pins = self.pins or {}
+    self.pins[#self.pins + 1] = pin
+    return pin
+  end
+  provider.RemoveAllData = function(self)
+    if self.pins then
+      for _, pin in ipairs(self.pins) do pin:Hide() end
+      self.pins = {}
+    end
+  end
+  WorldMapFrame:AddDataProvider(provider)
+  provider:RefreshAllData()
 end
 
 local function AddPin(uiMapID, xPct, yPct, title)
@@ -254,7 +295,7 @@ local function AddPin(uiMapID, xPct, yPct, title)
 
   local nx, ny = xPct / 100, yPct / 100
   SetNativeWaypoint(uiMapID, nx, ny, pin.title)
-  AddTomTom(uiMapID, nx, ny, pin.title)
+  RefreshOwnPins()
   RefreshMap()
 
   Print(string.format(L.pinned, pin.title, MapName(uiMapID), xPct, yPct))
@@ -266,7 +307,7 @@ local function ClearPins()
   if C_Map and C_Map.ClearUserWaypoint then
     pcall(C_Map.ClearUserWaypoint)
   end
-  ClearOverlayPins()
+  RefreshOwnPins()
   RefreshMap()
   Print(L.cleared)
 end
@@ -403,10 +444,11 @@ end
 local function OnLogin()
   EnsureDB()
   ImportInbox()
+  HookWorldMap()
   local pins = AIPinDB.pins
   if pins and #pins > 0 then
     local last = pins[#pins]
-    SetNativeWaypoint(last.uiMapID, last.x / 100, last.y / 100)
+    SetNativeWaypoint(last.uiMapID, last.x / 100, last.y / 100, last.title)
   end
 end
 
@@ -414,7 +456,7 @@ local function RemovePin(i)
   EnsureDB()
   if not AIPinDB.pins[i] then return end
   table.remove(AIPinDB.pins, i)
-  ClearOverlayPins()
+  RefreshOwnPins()
   RefreshMap()
 end
 
