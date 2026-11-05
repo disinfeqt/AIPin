@@ -3,8 +3,9 @@
 //
 // The addon folder (../AIPin) is the single source of truth: the version
 // comes from AIPin.toc, the changelog section is generated from
-// CHANGELOG.md, and media/icon-512.png is used as the logo and favicon.
-// No dependencies; needs Node 18+.
+// CHANGELOG.md, media/icon-512.png is used as the logo and favicon, and
+// AGENTS.md is published at /AGENTS.md so the hero's agent prompt can point
+// an AI assistant at it. No dependencies; needs Node 18+.
 
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -18,6 +19,8 @@ const ADDON_DIR = resolve(SITE_DIR, '..', 'AIPin');
 
 const REPO = 'disinfeqt/AIPin';
 const REPO_URL = `https://github.com/${REPO}`;
+// Public address of the site; the agent prompt in the hero links to AGENTS.md here.
+const SITE_URL = (process.env.SITE_URL || 'https://wow.duxi.ao').replace(/\/+$/, '');
 
 // ---------------------------------------------------------------------------
 // Reading addon files
@@ -137,10 +140,11 @@ function renderChangelog(md) {
 // ---------------------------------------------------------------------------
 
 async function build() {
-  const [toc, changelog, icon] = await Promise.all([
+  const [toc, changelog, icon, agents] = await Promise.all([
     readAddonFile('AIPin.toc'),
     readAddonFile('CHANGELOG.md'),
     readAddonFile('media/icon-512.png', { binary: true }),
+    readAddonFile('AGENTS.md'),
   ]);
 
   const version = tocField(toc, 'Version');
@@ -156,6 +160,7 @@ async function build() {
     REPO_URL,
     DOWNLOAD_URL: `${REPO_URL}/releases/latest/download/AIPin.zip`,
     AGENTS_URL: `${REPO_URL}/blob/main/AIPin/AGENTS.md`,
+    AGENTS_PROMPT_URL: `${SITE_URL}/AGENTS.md`,
     ICON_URL: `https://raw.githubusercontent.com/${REPO}/main/AIPin/media/icon-512.png`,
     CHANGELOG: changelogHtml,
   };
@@ -170,6 +175,7 @@ async function build() {
   await mkdir(OUT_DIR, { recursive: true });
   await writeFile(join(OUT_DIR, 'index.html'), page);
   await writeFile(join(OUT_DIR, 'icon.png'), icon);
+  await writeFile(join(OUT_DIR, 'AGENTS.md'), agents);
   for (const entry of await readdir(SRC_DIR, { withFileTypes: true })) {
     if (entry.isFile() && entry.name !== 'index.html') {
       await copyFile(join(SRC_DIR, entry.name), join(OUT_DIR, entry.name));

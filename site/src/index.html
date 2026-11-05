@@ -65,11 +65,28 @@
           <span lang="zh-CN">《魔兽世界：Forever》插件：让 AI 助手把 NPC 和地点标在你的地图上，并读取你的角色信息。</span>
           <span lang="en">A World of Warcraft: Forever addon that lets your AI assistant pin NPCs and places on your map and read your character info.</span>
         </p>
-        <a class="btn btn-primary" href="{{DOWNLOAD_URL}}">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16"/></svg>
-          <span lang="zh-CN">下载 AIPin</span><span lang="en">Download AIPin</span>
-          <span class="btn-version">v{{VERSION}}</span>
-        </a>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="{{DOWNLOAD_URL}}">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16"/></svg>
+            <span lang="zh-CN">下载 AIPin</span><span lang="en">Download AIPin</span>
+            <span class="btn-version">v{{VERSION}}</span>
+          </a>
+          <div class="agent-cta" data-copy>
+            <span class="agent-cta-tag">
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9zM18.5 15l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z"/></svg>
+              <span lang="zh-CN">AI 安装</span><span lang="en">AI setup</span>
+            </span>
+            <p class="agent-cta-text">
+              <span lang="zh-CN" data-copy-src>阅读 <span class="agent-cta-url">{{AGENTS_PROMPT_URL}}</span>，帮我安装 AIPin，并学会怎么用它。</span>
+              <span lang="en" data-copy-src>Read <span class="agent-cta-url">{{AGENTS_PROMPT_URL}}</span>, then install AIPin for me and learn how to use it.</span>
+            </p>
+            <span class="agent-cta-copy" data-copy-slot></span>
+          </div>
+        </div>
+        <p class="hero-hint">
+          <span lang="zh-CN">手动下载安装，或者复制这句话发给 Claude Code、Codex 等能操作电脑的 AI 助手：它会帮你装好插件，并学会给你标地图、加待办、读角色信息。</span>
+          <span lang="en">Install it yourself, or copy this line to an AI assistant that can work on your computer, such as Claude Code or Codex. It sets the addon up and learns how to pin places, add todos and read your character.</span>
+        </p>
       </div>
     </section>
 
@@ -191,7 +208,7 @@
             <div><dt><code>/aipin me</code></dt><dd><span lang="zh-CN">显示角色简要信息</span><span lang="en">Show a short character summary</span></dd></div>
             <div><dt><code>/aipin sync</code></dt><dd><span lang="zh-CN">同步：保存角色信息并导入助手推送的标记（会重载界面）</span><span lang="en">Sync: save the character snapshot and import assistant pins (reloads the UI)</span></dd></div>
             <div><dt><code>/aipin minimap</code></dt><dd><span lang="zh-CN">显示 / 隐藏小地图按钮</span><span lang="en">Show / hide the minimap button</span></dd></div>
-            <div><dt><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></dt><dd><span lang="zh-CN">左键打开标记列表，右键同步（同 <code>/aipin sync</code>）</span><span lang="en">Left-click for the pin list, right-click to sync (same as <code>/aipin sync</code>)</span></dd></div>
+            <div><dt><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></dt><dd><span lang="zh-CN">左键打开面板（待办 / 标记），右键同步（同 <code>/aipin sync</code>）</span><span lang="en">Left-click for the panel (Todos / Pins), right-click to sync (same as <code>/aipin sync</code>)</span></dd></div>
           </dl>
         </div>
       </div>
@@ -206,6 +223,7 @@
 
         <p class="note"><span lang="zh-CN">把 <a href="{{AGENTS_URL}}">AGENTS.md</a> 交给你的 AI 助手（插件文件夹里也有一份）。要点：</span><span lang="en">Give <a href="{{AGENTS_URL}}">AGENTS.md</a> to your AI assistant (a copy is also in the addon folder). In short:</span></p>
         <ul class="agent-list">
+          <li><span lang="zh-CN">安装 / 更新：下载最新的 AIPin.zip，解压到 <code>Interface/AddOns/</code>，保留旧的 <code>Inbox.lua</code>。AGENTS.md 里有 macOS 和 Windows 的完整命令。</span><span lang="en">Install / update: download the latest AIPin.zip, unpack it into <code>Interface/AddOns/</code> and keep the old <code>Inbox.lua</code>. AGENTS.md has the full commands for macOS and Windows.</span></li>
           <li><span lang="zh-CN">回复一行 <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code>，让玩家粘贴到聊天框。</span><span lang="en">Reply with <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code> for the player to paste into chat.</span></li>
           <li><span lang="zh-CN">或编辑 <code>Interface/AddOns/AIPin/Inbox.lua</code>：<code>version</code> 加 1，<code>pins</code> 里写新标记，然后让玩家点小地图按钮同步。</span><span lang="en">Or edit <code>Interface/AddOns/AIPin/Inbox.lua</code>: bump <code>version</code> by 1, add the new pins to <code>pins</code>, then ask the player to click the minimap button.</span></li>
           <li><span lang="zh-CN">从 <code>WTF/Account/*/SavedVariables/AIPin.lua</code> 读取 <code>AIPinChars</code> 角色信息（只读，取 <code>updated</code> 最新的一条）。</span><span lang="en">Read character data from <code>AIPinChars</code> in <code>WTF/Account/*/SavedVariables/AIPin.lua</code> (read-only; use the entry with the newest <code>updated</code>).</span></li>

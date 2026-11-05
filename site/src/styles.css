@@ -337,10 +337,90 @@ kbd {
 }
 
 .hero .btn-primary {
-  margin-top: 36px;
   min-height: 56px;
   padding: 0 28px;
   font-size: 18px;
+}
+
+/* Download button and the agent prompt sit side by side, wrapping when narrow. */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 14px;
+  width: 100%;
+  margin-top: 36px;
+}
+
+.agent-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 580px);
+  min-height: 56px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 8px;
+  background: rgba(6, 5, 4, 0.72);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 225, 160, 0.05), 0 10px 30px rgba(0, 0, 0, 0.25);
+  text-align: left;
+}
+
+.agent-cta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 182, 90, 0.45);
+  background: rgba(226, 182, 90, 0.1);
+  color: var(--gold-bright);
+  font: 700 12px/1.4 var(--sans);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.agent-cta-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.agent-cta-url {
+  color: var(--gold-bright);
+  overflow-wrap: anywhere;
+}
+
+.agent-cta-copy {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+}
+
+.agent-cta .copy-btn {
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-bright);
+  background: rgba(226, 182, 90, 0.08);
+  border-color: rgba(226, 182, 90, 0.42);
+}
+
+.agent-cta .copy-btn:hover {
+  background: rgba(226, 182, 90, 0.16);
+}
+
+.hero-hint {
+  max-width: 40em;
+  margin-top: 16px;
+  color: var(--dim);
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 /* Sections */
@@ -778,6 +858,11 @@ html[lang="zh-CN"] .sub-head {
   .hero { padding: 64px 0 72px; }
   .hero-lede { font-size: 16.5px; }
   .hero .btn-primary { width: 100%; }
+  .agent-cta { flex-wrap: wrap; padding: 12px; }
+  .agent-cta-text { flex-basis: 100%; order: 1; }
+  .agent-cta-copy { order: 2; margin-left: auto; align-self: auto; }
+  .agent-cta .copy-btn { padding: 6px 14px; }
+  .hero-hint { font-size: 13.5px; }
   .section { padding: 72px 0; }
   .section-head { margin-bottom: 36px; }
   .feature-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }

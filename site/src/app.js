@@ -41,10 +41,11 @@
     });
   });
 
-  // Copy buttons for .code[data-copy]. A block may hold one <code> per
-  // language; copy the one that is shown.
+  // Copy buttons for [data-copy] blocks: code blocks (.code-head + pre code)
+  // and the hero's agent prompt ([data-copy-slot] + [data-copy-src]). A block
+  // may hold one source per language; copy the one that is shown.
   function shownCode(block) {
-    var codes = block.querySelectorAll('pre code');
+    var codes = block.querySelectorAll('pre code, [data-copy-src]');
     for (var i = 0; i < codes.length; i++) {
       var lang = codes[i].getAttribute('lang');
       if (!lang || lang === root.lang) return codes[i];
@@ -68,8 +69,8 @@
     });
   }
 
-  document.querySelectorAll('.code[data-copy]').forEach(function (block) {
-    var head = block.querySelector('.code-head');
+  document.querySelectorAll('[data-copy]').forEach(function (block) {
+    var head = block.querySelector('[data-copy-slot], .code-head');
     if (!head) return;
     var btn = document.createElement('button');
     btn.type = 'button';
