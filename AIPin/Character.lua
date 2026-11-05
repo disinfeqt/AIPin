@@ -216,7 +216,26 @@ end
 
 local function Read(f) local ok, res = pcall(f); if ok then return res end end
 
+-- Recipes live in AIPinRecipes, a per-character SavedVariable (its own file under
+-- WTF/Account/<account>/<realm>/<character>/), so reading AIPinChars stays small.
+-- AIPinChars only gets a recipeCount / recipesUpdated summary per profession.
+local function RecipeStore()
+  if type(AIPinRecipes) ~= "table" then AIPinRecipes = {} end
+  if type(AIPinRecipes.professions) ~= "table" then AIPinRecipes.professions = {} end
+  return AIPinRecipes.professions
+end
+
 local function Recipes(list, old)
+  local store = RecipeStore()
+  -- 1.4.0 / 1.4.1 kept recipes inside AIPinChars; move them over once.
+  local before = type(old) == "table" and old.professions
+  if type(before) == "table" then
+    for _, q in ipairs(before) do
+      if type(q) == "table" and type(q.recipes) == "table" and q.name and not store[q.name] and Kind(q) ~= "gathering" then
+        store[q.name] = { recipes = q.recipes, recipesUpdated = q.recipesUpdated }
+      end
+    end
+  end
   -- A trade skill window and (on classic) the Enchanting craft window can be open at once.
   local sources = { Read(ReadTradeSkillUI) or Read(ReadClassicTradeSkill), Read(ReadClassicCraft) }
   for i = 1, 2 do
@@ -230,18 +249,19 @@ local function Recipes(list, old)
         hit.kind = Kind(hit)
         list[#list + 1] = hit
       end
-      hit.recipes, hit.recipesUpdated = open.recipes, time()
+      if hit.name then
+        local entry = store[hit.name] or {}
+        entry.recipes = type(entry.recipes) == "table" and MergeRecipes(open.recipes, entry.recipes) or open.recipes
+        entry.recipesUpdated = time()
+        store[hit.name] = entry
+      end
     end
   end
-  local before = type(old) == "table" and old.professions
-  if type(before) ~= "table" then return end
   for _, p in ipairs(list) do
-    for _, q in ipairs(before) do
-      if p.kind ~= "gathering" and type(q) == "table" and type(q.recipes) == "table" and SameProfession(p, q) then
-        p.recipes = p.recipes and MergeRecipes(p.recipes, q.recipes) or q.recipes
-        p.recipesUpdated = p.recipesUpdated or q.recipesUpdated
-        break
-      end
+    local entry = p.name and store[p.name]
+    if entry and p.kind ~= "gathering" and type(entry.recipes) == "table" then
+      entry.kind, entry.skillLine, entry.rank, entry.max = p.kind, p.skillLine, p.rank, p.max
+      p.recipeCount, p.recipesUpdated = #entry.recipes, entry.recipesUpdated
     end
   end
 end
@@ -315,7 +335,8 @@ local function Gear(s)
     if id then
       local link = safe(try(GetInventoryItemLink, "player", id))
       if link then
-        local e = { link = link, name = safe(link:match("%[(.-)%]")) }
+        -- itemID + name is all an assistant needs; full item links are long.
+        local e = { itemID = tonumber(link:match("item:(%d+)")), name = safe(link:match("%[(.-)%]")) }
         if C_Item and C_Item.GetDetailedItemLevelInfo then e.itemLevel = safe(try(C_Item.GetDetailedItemLevelInfo, link))
         elseif GetDetailedItemLevelInfo then e.itemLevel = safe(try(GetDetailedItemLevelInfo, link)) end
         g[slot] = e
@@ -336,11 +357,17 @@ local function Bags(s)
   s.bagFree, s.bagTotal = free, total
 end
 
+-- Realm without spaces or hyphens, whichever API answers. GetNormalizedRealmName
+-- can return nil (e.g. at logout); falling back to the spaced name used to save a
+-- second copy of the same character.
+local function Realm(r) return type(r) == "string" and (r:gsub("[%s%-]", "")) or nil end
+local function RealmKey() return Realm(safe(try(GetNormalizedRealmName))) or Realm(safe(try(GetRealmName))) or "?" end
+
 local function Snapshot()
   if type(AIPinChars) ~= "table" then AIPinChars = {} end
   local name = safe(try(UnitName, "player"))
   if not name then return end
-  local realm = safe(try(GetNormalizedRealmName)) or safe(try(GetRealmName)) or "?"
+  local realm = RealmKey()
   local key = name .. "-" .. realm
   local s = { name = name, realm = realm }
   s.race = safe(try(UnitRace, "player"))
@@ -353,6 +380,13 @@ local function Snapshot()
   s.guild = safe(try(GetGuildInfo, "player"))
   s.hearth = safe(try(GetBindLocation))
   local old = AIPinChars[key]
+  -- Fold in copies saved under the spaced realm name; keep the newest as "old".
+  for k, v in pairs(AIPinChars) do
+    if k ~= key and type(v) == "table" and v.name == name and Realm(v.realm) == realm then
+      if not old or (tonumber(v.updated) or 0) > (tonumber(old.updated) or 0) then old = v end
+      AIPinChars[k] = nil
+    end
+  end
   if old then s.timePlayed, s.timePlayedLevel = old.timePlayed, old.timePlayedLevel end
   for _, f in ipairs({ Location, Talents, Professions, Quests, Gear, Bags }) do pcall(f, s, old) end
   s.updated = time()
@@ -390,7 +424,7 @@ f:SetScript("OnEvent", function(_, ev, a1, a2)
   elseif ev == "PLAYER_REGEN_ENABLED" then
     if pending then pending = false; Request(true) end
   elseif ev == "TIME_PLAYED_MSG" then
-    local key = (safe(try(UnitName, "player")) or "?") .. "-" .. (safe(try(GetNormalizedRealmName)) or safe(try(GetRealmName)) or "?")
+    local key = (safe(try(UnitName, "player")) or "?") .. "-" .. RealmKey()
     if type(AIPinChars) == "table" and AIPinChars[key] then
       AIPinChars[key].timePlayed, AIPinChars[key].timePlayedLevel = safe(a1), safe(a2)
     end

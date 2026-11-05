@@ -77,8 +77,8 @@
               <span lang="zh-CN">AI 安装</span><span lang="en">AI setup</span>
             </span>
             <p class="agent-cta-text">
-              <span lang="zh-CN" data-copy-src>阅读 <span class="agent-cta-url">{{AGENTS_PROMPT_URL}}</span>，帮我安装 AIPin，并学会怎么用它。</span>
-              <span lang="en" data-copy-src>Read <span class="agent-cta-url">{{AGENTS_PROMPT_URL}}</span>, then install AIPin for me and learn how to use it.</span>
+              <span lang="zh-CN" data-copy-src>阅读 <span class="agent-cta-url">{{INSTALL_PROMPT_URL}}</span>，帮我安装 AIPin，并学会怎么用它。</span>
+              <span lang="en" data-copy-src>Read <span class="agent-cta-url">{{INSTALL_PROMPT_URL}}</span>, then install AIPin for me and learn how to use it.</span>
             </p>
             <span class="agent-cta-copy" data-copy-slot></span>
           </div>
@@ -223,7 +223,7 @@
 
         <p class="note"><span lang="zh-CN">把 <a href="{{AGENTS_URL}}">AGENTS.md</a> 交给你的 AI 助手（插件文件夹里也有一份）。要点：</span><span lang="en">Give <a href="{{AGENTS_URL}}">AGENTS.md</a> to your AI assistant (a copy is also in the addon folder). In short:</span></p>
         <ul class="agent-list">
-          <li><span lang="zh-CN">安装 / 更新：下载最新的 AIPin.zip，解压到 <code>Interface/AddOns/</code>，保留旧的 <code>Inbox.lua</code>。AGENTS.md 里有 macOS 和 Windows 的完整命令。</span><span lang="en">Install / update: download the latest AIPin.zip, unpack it into <code>Interface/AddOns/</code> and keep the old <code>Inbox.lua</code>. AGENTS.md has the full commands for macOS and Windows.</span></li>
+          <li><span lang="zh-CN">安装 / 更新：下载最新的 AIPin.zip，解压到 <code>Interface/AddOns/</code>，保留旧的 <code>Inbox.lua</code>。<a href="{{INSTALL_PROMPT_URL}}">INSTALL.md</a> 里有 macOS 和 Windows 的完整命令。</span><span lang="en">Install / update: download the latest AIPin.zip, unpack it into <code>Interface/AddOns/</code> and keep the old <code>Inbox.lua</code>. <a href="{{INSTALL_PROMPT_URL}}">INSTALL.md</a> has the full commands for macOS and Windows.</span></li>
           <li><span lang="zh-CN">回复一行 <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code>，让玩家粘贴到聊天框。</span><span lang="en">Reply with <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code> for the player to paste into chat.</span></li>
           <li><span lang="zh-CN">或编辑 <code>Interface/AddOns/AIPin/Inbox.lua</code>：<code>version</code> 加 1，<code>pins</code> 里写新标记，然后让玩家点小地图按钮同步。</span><span lang="en">Or edit <code>Interface/AddOns/AIPin/Inbox.lua</code>: bump <code>version</code> by 1, add the new pins to <code>pins</code>, then ask the player to click the minimap button.</span></li>
           <li><span lang="zh-CN">从 <code>WTF/Account/*/SavedVariables/AIPin.lua</code> 读取 <code>AIPinChars</code> 角色信息（只读，取 <code>updated</code> 最新的一条）。</span><span lang="en">Read character data from <code>AIPinChars</code> in <code>WTF/Account/*/SavedVariables/AIPin.lua</code> (read-only; use the entry with the newest <code>updated</code>).</span></li>

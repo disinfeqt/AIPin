@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.2 - 2026-11-05
+
+- 给 AI 助手的说明和角色数据更精简：图样单独存放，只在问做什么装备时才读取。
+- Leaner docs and character data for AI assistants: recipes are stored separately and only read when you ask what to craft.
+
 ## 1.4.1 - 2026-11-05
 
 - 所有制造专业都能读取已学图样；采集专业记录技能等级。
