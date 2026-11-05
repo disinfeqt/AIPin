@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.1 - 2026-11-05
+
+- 所有制造专业都能读取已学图样；采集专业记录技能等级。
+- Learned recipes for every crafting profession; gathering professions record their skill level.
+
 ## 1.4.0 - 2026-11-05
 
 - 角色信息新增已学的专业图样，AI 助手可以据此推荐做什么装备。

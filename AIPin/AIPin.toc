@@ -5,7 +5,7 @@
 ## Notes: Highlight NPCs your assistant points you to. Paste /aipin commands.
 ## Notes-zhCN: 在地图上高亮助手告诉你的 NPC 位置。粘贴 /aipin 指令即可。
 ## Author: WoW Forever (Grok Bot)
-## Version: 1.4.0
+## Version: 1.4.1
 ## SavedVariables: AIPinDB, AIPinChars
 ## AllowLoadGameType: forever
 ## ExcludeLoadGameType: standard, classic
