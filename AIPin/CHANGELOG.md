@@ -1,5 +1,12 @@
 # CHANGELOG / 更新日志
 
+## 1.4.5 - 2026-11-06
+
+- 修复：同步或 /reload 后世界地图上看不到标记。现在打开地图或切换地图时，当前地图的所有标记都会显示，铁炉堡这类城市地图也一样。
+- 导航点优先指向你所在地图上的标记。点面板「标记」里的一行，或者点地图上的标记，就能把导航点换过去。
+- Fix: pins didn't show on the world map after a sync or /reload. Opening or switching maps now shows every pin for that map, city maps like Ironforge included.
+- The waypoint now goes to a pin on the map you're on. Click a pin in the panel's Pins tab, or on the map, to move the waypoint there.
+
 ## 1.4.4 - 2026-11-06
 
 - 修复：刚登录就同步会清空金钱、经验、装备、专业和任务目标。现在会等数据加载完再保存，读不到的保留上次的值。

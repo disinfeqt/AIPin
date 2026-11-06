@@ -264,14 +264,31 @@ local function RefreshPins()
       r.sub:SetPoint("RIGHT", r.del, "LEFT", -6, 0)
       r.sub:SetJustifyH("LEFT"); r.sub:SetWordWrap(false)
       r.sub:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
+      -- Click a row to move the waypoint there; the × button still deletes.
+      local function RowTip(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(self.active and "当前导航点" or "点击设为导航点", 1, 1, 1)
+        GameTooltip:Show()
+      end
+      r:SetScript("OnEnter", RowTip)
+      r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      r:SetScript("OnMouseUp", function(self, button)
+        if button ~= "LeftButton" or not self:IsMouseOver() then return end
+        if self.pin and AIPin_API and AIPin_API.WaypointTo then AIPin_API.WaypointTo(self.pin) end
+        RowTip(self) -- WaypointTo refreshed the list, so self.active is current
+      end)
       RowHover(r, r.del)
       pinRows[i] = r
     end
+    local active = AIPin_API and AIPin_API.IsWaypointPin and AIPin_API.IsWaypointPin(p)
+    r.pin, r.active = p, active
     r:ClearAllPoints()
     r:SetPoint("TOPLEFT", 0, -(i - 1) * PIN_ROW)
     r:SetWidth(LIST_W)
     r.text:SetText(p.title or "?")
-    r.sub:SetText(string.format("|cff73bfff%s|r   %.1f, %.1f", ZoneName(p.uiMapID), p.x or 0, p.y or 0))
+    if active then r.text:SetTextColor(C.gold[1], C.gold[2], C.gold[3]) else r.text:SetTextColor(1, 1, 1) end
+    r.sub:SetText(string.format("|cff73bfff%s|r   %.1f, %.1f", ZoneName(p.uiMapID), p.x or 0, p.y or 0)
+      .. (active and "   |cffffd100导航中|r" or ""))
     r.del:SetScript("OnClick", function()
       if AIPin_API and AIPin_API.RemovePin then AIPin_API.RemovePin(i) end
       AIPin_RefreshPanel()
@@ -519,7 +536,7 @@ local function CreatePanel()
   pinHint:SetJustifyH("RIGHT")
   pinHint:SetWordWrap(false)
   pinHint:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
-  pinHint:SetText("按 M 打开地图查看标记")
+  pinHint:SetText("点击标记设为导航点，按 M 打开地图")
 
   panel.pinWell = ListWell(pinPage, "AIPinPinScroll", LIST_W)
   panel.pinWell:SetPoint("TOPLEFT", 0, 0)

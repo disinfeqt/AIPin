@@ -42,7 +42,7 @@ AIPinInbox = {
 - Set `version` above the file's current `version` and above `inboxVersion` and `todoInboxVersion` in `AIPinDB` (updating the addon resets the file to 0).
 - Only list new entries. `zone` is an English or Chinese zone name (table at the top of `AIPin.lua`), or use `map = <uiMapID>`;
   the snapshot's `uiMapID` works for the player's current zone. `x`/`y` are map percent (0–100), as on Wowhead.
-- At most 20 pins are kept (oldest dropped). The last pin in `pins` gets the waypoint arrow, so list the next destination last.
+- At most 20 pins are kept (oldest dropped). The waypoint arrow goes to the last pin on the player's current map (the last pin overall if none are there), so list the next destination last.
 - A todo with `zone` reminds on entering the zone; add `x`/`y` to remind within ~3% of a spot; no `zone` = plain todo.
 - Keep valid Lua: quote strings, escape `"` and `\`.
 

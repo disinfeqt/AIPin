@@ -16,6 +16,8 @@ local L = {
   badArgs = "|cffffd100AIPin:|r 用法: /aipin [区域] <x> <y> [名称]  |  /aipin clear  |  /aipin list",
   noMap = "|cffffd100AIPin:|r 无法解析地图，请带上区域名，例如: /aipin 丹莫罗 44.1 57.1 巡山人格雷琴",
   unknownZone = "|cffffd100AIPin:|r 未知区域: %s（改用当前地图）",
+  waypoint = "|cffffd100AIPin:|r 导航点已设为 %s (%s %.1f, %.1f)",
+  noWaypoint = "|cffffd100AIPin:|r %s 不能设置导航点",
   help = "|cffffd100AIPin|r 用法:\n  /aipin [区域] <x> <y> [名称]\n  /aipin clear — 清除标记\n  /aipin list — 列出标记\n  /aipin me — 查看角色信息\n  /aipin sync — 同步（保存并重载界面）\n  /aipin minimap — 显示/隐藏小地图按钮\n  /aipin todo <内容> [@ 区域 [x y]] — 添加待办/区域或地理提醒\n  /aipin todos | done N | undone N | deltodo N | cleartodos\n示例: /aipin 丹莫罗 44.1 57.1 巡山人格雷琴",
 }
 
@@ -118,12 +120,12 @@ local function EnsureDB()
   AIPinDB.pins = AIPinDB.pins or {}
 end
 
-local function RefreshMap()
-  if WorldMapFrame and WorldMapFrame:IsShown() then
-    if WorldMapFrame.RefreshAllDataProviders then
-      pcall(function() WorldMapFrame:RefreshAllDataProviders() end)
-    end
-  end
+local function PlayerMapID()
+  return C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+end
+
+local function RefreshPanel()
+  if AIPin_RefreshPanel then AIPin_RefreshPanel() end
 end
 
 -- Blizzard's own waypoint always says "地图标记分享" (Map Pin). We remember the
@@ -189,10 +191,14 @@ local function HookWaypointTooltip()
   local ev = CreateFrame("Frame")
   ev:RegisterEvent("USER_WAYPOINT_UPDATED")
   ev:RegisterEvent("SUPER_TRACKING_CHANGED")
-  ev:SetScript("OnEvent", UpdateHudLabel)
+  ev:SetScript("OnEvent", function()
+    UpdateHudLabel()
+    RefreshPanel() -- the pin list marks which pin has the waypoint
+  end)
 end
 
-local function SetNativeWaypoint(uiMapID, x, y, title)
+-- x, y are 0-1. manual = the player chose this pin, so a /reload keeps it.
+local function SetNativeWaypoint(uiMapID, x, y, title, manual)
   if not (C_Map and UiMapPoint and C_Map.CanSetUserWaypointOnMap and C_Map.SetUserWaypoint) then
     return false
   end
@@ -200,7 +206,7 @@ local function SetNativeWaypoint(uiMapID, x, y, title)
   if not ok or not can then return false end
   local point = UiMapPoint.CreateFromCoordinates(uiMapID, x, y)
   if not point then return false end
-  activeTitle = { uiMapID = uiMapID, x = x, y = y, title = title }
+  activeTitle = { uiMapID = uiMapID, x = x, y = y, title = title, manual = manual or nil }
   EnsureDB()
   AIPinDB.activeWaypoint = activeTitle
   HookWaypointTooltip()
@@ -212,92 +218,201 @@ local function SetNativeWaypoint(uiMapID, x, y, title)
   return true
 end
 
+-- Does the Blizzard waypoint sit on this saved pin (x, y in map percent)?
+local function IsWaypointPin(p)
+  if not (p and p.x and p.y and C_Map and C_Map.GetUserWaypoint) then return false end
+  local wp = C_Map.GetUserWaypoint()
+  if not wp or not wp.position or wp.uiMapID ~= p.uiMapID then return false end
+  return math.abs(wp.position.x - p.x / 100) <= 0.002 and math.abs(wp.position.y - p.y / 100) <= 0.002
+end
+
+-- Point the waypoint at a saved pin because the player asked to (panel row or map icon).
+local function WaypointTo(p)
+  if not (p and p.uiMapID and p.x and p.y) then return false end
+  if SetNativeWaypoint(p.uiMapID, p.x / 100, p.y / 100, p.title, true) then
+    Print(string.format(L.waypoint, p.title or "AIPin", MapName(p.uiMapID), p.x, p.y))
+    RefreshPanel()
+    return true
+  end
+  Print(string.format(L.noWaypoint, MapName(p.uiMapID)))
+  return false
+end
+
+-- The waypoint marks one place only. Use the newest pin on the map the player is
+-- on, so it points somewhere they can walk to; if none is here, the newest pin.
+local function PickWaypoint()
+  EnsureDB()
+  local pins, here, order = AIPinDB.pins, PlayerMapID(), {}
+  for i = #pins, 1, -1 do
+    if pins[i].uiMapID == here then order[#order + 1] = pins[i] end
+  end
+  for i = #pins, 1, -1 do
+    if pins[i].uiMapID ~= here then order[#order + 1] = pins[i] end
+  end
+  -- Some maps refuse a waypoint; move on to the next pin.
+  for _, p in ipairs(order) do
+    if p.x and p.y and SetNativeWaypoint(p.uiMapID, p.x / 100, p.y / 100, p.title) then return p end
+  end
+end
+
+-- After login/reload: keep a waypoint the player picked themselves (unless new
+-- pins just came in), otherwise pick one for where they are now.
+local function RestoreWaypoint(imported)
+  EnsureDB()
+  if #AIPinDB.pins == 0 then return end
+  local a = AIPinDB.activeWaypoint
+  if not imported and a and a.manual and a.x and a.y then
+    for _, p in ipairs(AIPinDB.pins) do
+      if p.uiMapID == a.uiMapID and math.abs(p.x / 100 - a.x) <= 0.002 and math.abs(p.y / 100 - a.y) <= 0.002
+         and SetNativeWaypoint(p.uiMapID, p.x / 100, p.y / 100, p.title, true) then
+        return
+      end
+    end
+  end
+  PickWaypoint()
+end
+
 -- Own map pins ---------------------------------------------------------
+-- One AIPin icon per saved pin on the map being viewed. The map redraws them on
+-- open and on every map change; frames are pooled because WoW never frees them.
+local ICON = "Interface\\AddOns\\AIPin\\media\\icon"
+local NEAR = 1.5 -- map percent; icons this close overlap, so their tooltips list each other
 local provider
+local pinFrames, pinsUsed = {}, 0
+
+-- Above explored-area overlays (they would cover the icon), below the player arrow.
+local function PinFrameLevel(map)
+  local ok, level = pcall(function()
+    local m = map:GetPinFrameLevelsManager()
+    if m.definitions and m.definitions.PIN_FRAME_LEVEL_AREA_POI then
+      return m:GetValidFrameLevel("PIN_FRAME_LEVEL_AREA_POI")
+    end
+    return m:GetValidFrameLevel("PIN_FRAME_LEVEL_TOPMOST")
+  end)
+  if ok and type(level) == "number" then return level end
+  return map:GetCanvas():GetFrameLevel() + 10
+end
+
+local function PinTooltip(self)
+  local p = self.aipin
+  if not p then return end
+  GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+  GameTooltip:SetText(p.title or "AIPin", 1, 0.82, 0)
+  GameTooltip:AddLine(MapName(p.uiMapID), 0.8, 0.8, 0.8)
+  GameTooltip:AddLine(string.format("%.1f, %.1f", p.x or 0, p.y or 0), 1, 1, 1)
+  local header
+  for _, q in ipairs(AIPinDB.pins) do
+    if q ~= p and q.uiMapID == p.uiMapID and q.x and q.y
+       and math.abs(q.x - p.x) < NEAR and math.abs(q.y - p.y) < NEAR then
+      if not header then
+        GameTooltip:AddLine("附近还有", 0.6, 0.6, 0.6)
+        header = true
+      end
+      GameTooltip:AddDoubleLine(q.title or "AIPin", string.format("%.1f, %.1f", q.x, q.y), 1, 0.82, 0, 1, 1, 1)
+    end
+  end
+  GameTooltip:AddLine(IsWaypointPin(p) and "当前导航点" or "点击设为导航点", 0.5, 0.8, 1)
+  GameTooltip:Show()
+end
+
+local function NewPinFrame(canvas)
+  local pin = CreateFrame("Button", nil, canvas)
+  pin:SetSize(24, 24)
+  pin.tex = pin:CreateTexture(nil, "OVERLAY")
+  pin.tex:SetAllPoints()
+  pin.tex:SetTexture(ICON)
+  pin:EnableMouse(true)
+  pin:RegisterForClicks("LeftButtonUp")
+  -- Right-click still reaches the map (zoom out).
+  if pin.SetPassThroughButtons then pcall(pin.SetPassThroughButtons, pin, "RightButton") end
+  pin:SetScript("OnClick", function(self)
+    if self.aipin then WaypointTo(self.aipin) end
+    if self:IsMouseOver() then PinTooltip(self) end
+  end)
+  pin:SetScript("OnEnter", PinTooltip)
+  pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  return pin
+end
+
+local HookWorldMap -- defined below
 
 local function RefreshOwnPins()
+  if not provider then HookWorldMap() end
   if not provider then return end
   provider:RemoveAllData()
-  local mapID = provider:GetMap():GetMapID()
+  local map = provider:GetMap()
+  local mapID = map and map:GetMapID()
+  if not mapID then return end
   EnsureDB()
-  local canvas = provider:GetMap():GetCanvas()
+  local canvas = map:GetCanvas()
+  local w, h = canvas:GetWidth(), canvas:GetHeight()
+  local level
   for _, p in ipairs(AIPinDB.pins) do
-    if p.uiMapID == mapID then
+    if p.uiMapID == mapID and p.x and p.y then
+      level = level or PinFrameLevel(map)
       local pin = provider:AcquirePin()
-      pin.aipinTitle = p.title
-      pin.aipinMap = p.uiMapID
-      pin.aipinX, pin.aipinY = p.x, p.y
-      -- Use normalized 0-1 coordinates; Blizzard's canvas positions pins the same way
+      pin.aipin = p
+      pin:SetFrameLevel(level)
       pin:ClearAllPoints()
-      pin:SetPoint("CENTER", canvas, "TOPLEFT", canvas:GetWidth() * (p.x / 100), -canvas:GetHeight() * (p.y / 100))
+      pin:SetPoint("CENTER", canvas, "TOPLEFT", w * p.x / 100, -h * p.y / 100)
       pin:Show()
     end
   end
 end
 
-local function HookWorldMap()
-  if provider or not WorldMapFrame or not WorldMapFrame.AddDataProvider then return end
+HookWorldMap = function()
+  if provider or not (WorldMapFrame and WorldMapFrame.AddDataProvider and MapCanvasDataProviderMixin) then return end
   provider = CreateFromMixins(MapCanvasDataProviderMixin)
-  provider.GetMap = function(self) return WorldMapFrame end
+  provider.GetMap = function() return WorldMapFrame end
   provider.AcquirePin = function(self)
-    local pin = CreateFrame("Frame", nil, self:GetMap():GetCanvas())
-    pin:SetSize(24, 24)
-    pin.tex = pin:CreateTexture(nil, "OVERLAY")
-    pin.tex:SetAllPoints()
-    pin.tex:SetTexture("Interface\\AddOns\\AIPin\\media\\icon")
-    pin:SetScript("OnEnter", function(self)
-      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-      GameTooltip:SetText(self.aipinTitle or "AIPin", 1, 0.82, 0)
-      GameTooltip:AddLine(MapName(self.aipinMap), 0.8, 0.8, 0.8)
-      GameTooltip:AddLine(string.format("%.1f, %.1f", self.aipinX or 0, self.aipinY or 0), 1, 1, 1)
-      GameTooltip:Show()
-    end)
-    pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    self.pins = self.pins or {}
-    self.pins[#self.pins + 1] = pin
+    pinsUsed = pinsUsed + 1
+    local pin = pinFrames[pinsUsed]
+    if not pin then
+      pin = NewPinFrame(self:GetMap():GetCanvas())
+      pinFrames[pinsUsed] = pin
+    end
     return pin
   end
-  provider.RemoveAllData = function(self)
-    if self.pins then
-      for _, pin in ipairs(self.pins) do pin:Hide() end
-      self.pins = {}
+  provider.RemoveAllData = function()
+    for _, pin in ipairs(pinFrames) do
+      pin:Hide()
+      pin.aipin = nil
     end
+    pinsUsed = 0
   end
+  -- The map calls these when it opens, when the viewed map changes and when the
+  -- canvas resizes, so each map shows exactly its own pins.
+  provider.RefreshAllData = function() RefreshOwnPins() end
+  provider.OnMapChanged = function() RefreshOwnPins() end
+  provider.OnCanvasSizeChanged = function() RefreshOwnPins() end
   WorldMapFrame:AddDataProvider(provider)
-  provider:RefreshAllData()
+  WorldMapFrame:HookScript("OnShow", function() RefreshOwnPins() end)
 end
 
-local function AddPin(uiMapID, xPct, yPct, title)
+-- Saves a pin (or retitles the one already at that spot) and returns it.
+local function StorePin(uiMapID, xPct, yPct, title)
   EnsureDB()
-  local pin = {
-    uiMapID = uiMapID,
-    x = xPct,
-    y = yPct,
-    title = title or "AIPin",
-    created = time(),
-  }
-  local dup
+  title = title or "AIPin"
   for _, q in ipairs(AIPinDB.pins) do
     if q.uiMapID == uiMapID and math.abs((q.x or 0) - xPct) < 0.15 and math.abs((q.y or 0) - yPct) < 0.15 then
-      dup = q
-      break
+      q.title = title
+      return q
     end
   end
-  if dup then
-    dup.title = pin.title
-    pin = dup
-  else
-    table.insert(AIPinDB.pins, pin)
-  end
+  local pin = { uiMapID = uiMapID, x = xPct, y = yPct, title = title, created = time() }
+  table.insert(AIPinDB.pins, pin)
   while #AIPinDB.pins > MAX_PINS do
     table.remove(AIPinDB.pins, 1)
   end
+  return pin
+end
 
-  local nx, ny = xPct / 100, yPct / 100
-  SetNativeWaypoint(uiMapID, nx, ny, pin.title)
+-- /aipin: save the pin and point the waypoint at it.
+local function AddPin(uiMapID, xPct, yPct, title)
+  local pin = StorePin(uiMapID, xPct, yPct, title)
+  SetNativeWaypoint(uiMapID, xPct / 100, yPct / 100, pin.title, true)
   RefreshOwnPins()
-  RefreshMap()
-
+  RefreshPanel()
   Print(string.format(L.pinned, pin.title, MapName(uiMapID), xPct, yPct))
 end
 
@@ -307,8 +422,9 @@ local function ClearPins()
   if C_Map and C_Map.ClearUserWaypoint then
     pcall(C_Map.ClearUserWaypoint)
   end
+  activeTitle = nil
+  AIPinDB.activeWaypoint = nil
   RefreshOwnPins()
-  RefreshMap()
   Print(L.cleared)
 end
 
@@ -432,24 +548,25 @@ local function ImportInbox()
     local x, y = tonumber(p.x), tonumber(p.y)
     local uiMapID = tonumber(p.map) or (p.zone and ResolveZone(p.zone))
     if uiMapID and x and y then
-      AddPin(uiMapID, x, y, p.title)
+      local pin = StorePin(uiMapID, x, y, p.title)
+      Print(string.format(L.pinned, pin.title, MapName(uiMapID), x, y))
       n = n + 1
     elseif p.zone then
       Print("|cffffd100AIPin:|r 收件箱里有未知区域: " .. tostring(p.zone))
     end
   end
   if n > 0 then Print(string.format("已从助手导入 %d 个新标记。", n)) end
+  return n
 end
+
+-- Set at login, used once the player is in the world (their map is known by then).
+local importedAtLogin
 
 local function OnLogin()
   EnsureDB()
-  ImportInbox()
   HookWorldMap()
-  local pins = AIPinDB.pins
-  if pins and #pins > 0 then
-    local last = pins[#pins]
-    SetNativeWaypoint(last.uiMapID, last.x / 100, last.y / 100, last.title)
-  end
+  importedAtLogin = (ImportInbox() or 0) > 0
+  RefreshOwnPins()
 end
 
 local function RemovePin(i)
@@ -457,17 +574,23 @@ local function RemovePin(i)
   if not AIPinDB.pins[i] then return end
   table.remove(AIPinDB.pins, i)
   RefreshOwnPins()
-  RefreshMap()
 end
 
-AIPin_API = { Print = Print, MapName = MapName, ClearPins = ClearPins, RemovePin = RemovePin, EnsureDB = EnsureDB, ResolveZone = ResolveZone, Trim = Trim }
+AIPin_API = {
+  Print = Print, MapName = MapName, ClearPins = ClearPins, RemovePin = RemovePin, EnsureDB = EnsureDB,
+  ResolveZone = ResolveZone, Trim = Trim,
+  SetNativeWaypoint = SetNativeWaypoint, WaypointTo = WaypointTo, IsWaypointPin = IsWaypointPin,
+}
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:SetScript("OnEvent", function(_, event, arg1)
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:SetScript("OnEvent", function(self, event, arg1)
   if event == "ADDON_LOADED" and arg1 == ADDON then
     EnsureDB()
+  elseif event == "ADDON_LOADED" and arg1 == "Blizzard_WorldMap" then
+    RefreshOwnPins() -- hooks the map if it loaded after us
   elseif event == "PLAYER_LOGIN" then
     OnLogin()
     if AIPinDB and AIPinDB.activeWaypoint and not activeTitle then
@@ -475,5 +598,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
     end
     HookWaypointTooltip()
     UpdateHudLabel()
+  elseif event == "PLAYER_ENTERING_WORLD" then
+    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    RestoreWaypoint(importedAtLogin)
+    RefreshOwnPins()
   end
 end)
