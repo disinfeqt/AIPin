@@ -414,10 +414,26 @@ local function StorePin(uiMapID, xPct, yPct, title)
   end
   local pin = { uiMapID = uiMapID, x = xPct, y = yPct, title = title, created = time() }
   table.insert(AIPinDB.pins, pin)
+  -- Over the limit: drop the oldest by creation time, not the top of the list
+  -- (the player can reorder it).
   while #AIPinDB.pins > MAX_PINS do
-    table.remove(AIPinDB.pins, 1)
+    local oldest = 1
+    for i, q in ipairs(AIPinDB.pins) do
+      if (q.created or 0) < (AIPinDB.pins[oldest].created or 0) then oldest = i end
+    end
+    table.remove(AIPinDB.pins, oldest)
   end
   return pin
+end
+
+-- Panel drag-to-reorder: move pin `from` to position `to`.
+local function MovePin(from, to)
+  EnsureDB()
+  local pins = AIPinDB.pins
+  if not (pins[from] and to and to >= 1 and to <= #pins and to ~= from) then return false end
+  table.insert(pins, to, table.remove(pins, from))
+  RefreshOwnPins()
+  return true
 end
 
 -- /aipin: save the pin and point the waypoint at it.
@@ -590,7 +606,7 @@ local function RemovePin(i)
 end
 
 AIPin_API = {
-  Print = Print, MapName = MapName, ClearPins = ClearPins, RemovePin = RemovePin, EnsureDB = EnsureDB,
+  Print = Print, MapName = MapName, ClearPins = ClearPins, RemovePin = RemovePin, MovePin = MovePin, EnsureDB = EnsureDB,
   ResolveZone = ResolveZone, Trim = Trim,
   SetNativeWaypoint = SetNativeWaypoint, WaypointTo = WaypointTo, IsWaypointPin = IsWaypointPin,
 }

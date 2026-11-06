@@ -130,6 +130,58 @@ local function DelTodo(i)
   NotifyPanel()
 end
 
+-- A todo as the add box would take it: "text", "text @ zone" or "text @ zone x y".
+local function FormatTodo(t)
+  if not t.map then return t.text end
+  local zone = AIPin_API and AIPin_API.MapName and AIPin_API.MapName(t.map) or tostring(t.map)
+  if t.x and t.y then return string.format("%s @ %s %.1f %.1f", t.text, zone, t.x, t.y) end
+  return t.text .. " @ " .. zone
+end
+
+local function SplitLoc(raw)
+  local text, loc = raw:match("^(.-)%s*@%s*(.-)%s*$")
+  if text then return Trim(text), loc ~= "" and loc or nil end
+  return Trim(raw), nil
+end
+
+-- Panel edit: same syntax as adding. Leaving the "@ …" part as shown keeps the
+-- exact place; changing it re-parses it; deleting it makes a plain todo.
+-- Returns ok, err.
+local function EditTodo(i, raw)
+  local t = DB().todos[i]
+  if not t then return false, "没有第 " .. tostring(i) .. " 条待办" end
+  raw = Trim(raw)
+  local before = FormatTodo(t)
+  if raw == before then return true end
+  local text, loc = SplitLoc(raw)
+  if text == "" then return false, "待办内容不能为空" end
+  local _, oldLoc = SplitLoc(before)
+  local map, x, y = t.map, t.x, t.y
+  if loc ~= oldLoc then
+    if loc then
+      local ptext, err, pmap, px, py = Parse(raw)
+      if not ptext then return false, err end
+      text, map, x, y = ptext, pmap, px, py
+    else
+      map, x, y = nil, nil, nil
+    end
+  end
+  if map ~= t.map or x ~= t.x or y ~= t.y then t.triggered = nil end
+  t.text, t.map, t.x, t.y = text, map, x, y
+  P(TAG .. "已更新待办：" .. text)
+  NotifyPanel()
+  return true
+end
+
+-- Panel drag-to-reorder: move todo `from` to position `to`.
+local function MoveTodo(from, to)
+  local todos = DB().todos
+  if not (todos[from] and to and to >= 1 and to <= #todos and to ~= from) then return false end
+  table.insert(todos, to, table.remove(todos, from))
+  NotifyPanel()
+  return true
+end
+
 local function ClearDone()
   local keep, n = {}, 0
   for _, t in ipairs(DB().todos) do if t.done then n = n + 1 else keep[#keep + 1] = t end end
@@ -223,6 +275,9 @@ function AIPin_TodoAdd(text, map, x, y) return AddTodo(text, map, x, y) end
 function AIPin_TodoAddFromInput(raw) return AddFromInput(raw) end
 function AIPin_TodoSetDone(i, v) SetDone(i, v) end
 function AIPin_TodoDelete(i) DelTodo(i) end
+function AIPin_TodoMove(from, to) return MoveTodo(from, to) end
+function AIPin_TodoEdit(i, raw) return EditTodo(i, raw) end
+function AIPin_TodoFormat(i) local t = DB().todos[i]; return t and FormatTodo(t) end
 function AIPin_TodoClearDone() ClearDone() end
 function AIPin_TodoCounts() return Counts() end
 function AIPin_TodoParseInput(raw) return Parse(raw) end

@@ -155,6 +155,15 @@ local function ListWell(parent, name, width)
     end)
   end
   well.scroll = sf
+  -- Gold line that shows where a dragged row will land. A frame, so it draws above the rows.
+  local drop = CreateFrame("Frame", nil, child)
+  drop:SetHeight(2)
+  drop:SetFrameLevel(child:GetFrameLevel() + 20)
+  local dropTex = drop:CreateTexture(nil, "OVERLAY")
+  dropTex:SetAllPoints()
+  dropTex:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+  drop:Hide()
+  well.dropLine = drop
   well.empty = well:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   well.empty:SetPoint("CENTER", 0, 10)
   well.empty:SetJustifyH("CENTER")
@@ -212,6 +221,155 @@ local panel
 local pinRows, todoRows = {}, {}
 local activeTab = "todo"
 local ShowTab -- forward
+
+-- Drag to reorder -----------------------------------------------------------------
+-- Hold the left button on a row and move: the row dims, a gold line marks where
+-- it will land, and the list scrolls near its top/bottom edge. Release to drop.
+local DRAG_EDGE, DRAG_SPEED = 24, 360 -- px from the edge that scrolls; px per second
+local drag        -- { row, well, rowH, from, n, move, slot } while a drag is on
+local justDragged -- the mouse-up that ends a drag must not count as a click
+local dragDriver = CreateFrame("Frame")
+
+local function DragUpdate(_, elapsed)
+  local d = drag
+  if not d then dragDriver:SetScript("OnUpdate", nil) return end
+  local sf, child = d.well.scroll, d.well.scroll.child
+  local _, cy = GetCursorPosition()
+  cy = cy / (sf:GetEffectiveScale() or 1)
+  local top, bottom, range = sf:GetTop(), sf:GetBottom(), sf:GetVerticalScrollRange() or 0
+  if top and bottom and range > 0 then
+    local step = (cy > top - DRAG_EDGE and -1) or (cy < bottom + DRAG_EDGE and 1) or 0
+    if step ~= 0 then
+      sf:SetVerticalScroll(math.max(0, math.min(range, (sf:GetVerticalScroll() or 0) + step * DRAG_SPEED * elapsed)))
+    end
+  end
+  local ctop = child:GetTop()
+  if not ctop then return end
+  -- Gap index 0..n: 0 is above the first row, n below the last.
+  local slot = math.max(0, math.min(d.n, math.floor((ctop - cy) / d.rowH + 0.5)))
+  d.slot = slot
+  local line = d.well.dropLine
+  if slot == d.from or slot == d.from - 1 then
+    line:Hide() -- dropping here would not move anything
+  else
+    local y = math.min(0, math.max(2 - d.n * d.rowH, 1 - slot * d.rowH))
+    line:ClearAllPoints()
+    line:SetPoint("TOPLEFT", child, "TOPLEFT", 4, y)
+    line:SetPoint("TOPRIGHT", child, "TOPRIGHT", -4, y)
+    line:Show()
+  end
+end
+
+local function StartDrag(row, well, rowH, n, move)
+  if drag or not row.index or n < 2 then return end
+  drag = { row = row, well = well, rowH = rowH, from = row.index, n = n, move = move }
+  row:SetAlpha(0.45)
+  GameTooltip:Hide()
+  dragDriver:SetScript("OnUpdate", DragUpdate)
+end
+
+local function FinishDrag(cancel)
+  local d = drag
+  if not d then return end
+  drag, justDragged = nil, true
+  dragDriver:SetScript("OnUpdate", nil)
+  d.row:SetAlpha(1)
+  d.well.dropLine:Hide()
+  local g = d.slot
+  if cancel or not g then return end
+  local to = (g < d.from) and (g + 1) or g
+  if to ~= d.from then d.move(d.from, to) end
+  if AIPin_RefreshPanel then AIPin_RefreshPanel() end
+end
+
+-- Wire a list row for dragging. countFn/move are the list's size and mover.
+local function Draggable(r, wellKey, rowH, countFn, move)
+  r:RegisterForDrag("LeftButton")
+  r:HookScript("OnMouseDown", function() justDragged = false end)
+  r:SetScript("OnDragStart", function(self)
+    if panel then StartDrag(self, panel[wellKey], rowH, countFn(), move) end
+  end)
+  r:SetScript("OnDragStop", function() FinishDrag() end)
+end
+
+local function MovePin(from, to)
+  if AIPin_API and AIPin_API.MovePin then AIPin_API.MovePin(from, to) end
+end
+local function MoveTodo(from, to)
+  if AIPin_TodoMove then AIPin_TodoMove(from, to) end
+end
+local function PinCount() return #DB().pins end
+local function TodoCount() return #(AIPin_TodoGetList and AIPin_TodoGetList() or {}) end
+
+-- Edit a todo in its row ------------------------------------------------------------
+-- Double-click a todo: the row turns into an input with the add box's syntax
+-- ("text @ zone x y"). Enter saves, Esc cancels, clicking away saves.
+local DOUBLE_CLICK = 0.4
+local editor  -- one shared EditBox, laid over the row being edited
+local editing -- the todo table being edited (not its index: the list can change)
+local lastClick = {}
+
+local function TodoIndex(t)
+  for i, x in ipairs(AIPin_TodoGetList and AIPin_TodoGetList() or {}) do
+    if x == t then return i end
+  end
+end
+
+local function AnchorEditor(r)
+  editor:ClearAllPoints()
+  editor:SetPoint("LEFT", r.cb, "RIGHT", 2, 0)
+  editor:SetPoint("RIGHT", r.del, "LEFT", -4, 0)
+  editor:SetFrameLevel(r:GetFrameLevel() + 5)
+end
+
+-- closing = the panel/tab is going away: always end the edit (a hidden box must not keep the keyboard).
+local function StopEdit(save, closing)
+  local t = editing
+  if not t then return end
+  if save then
+    local i = TodoIndex(t)
+    local ok, err = true, nil
+    if i and AIPin_TodoEdit then ok, err = AIPin_TodoEdit(i, editor:GetText() or "") end
+    if not ok then
+      P("|cffffd100AIPin:|r " .. tostring(err))
+      if not closing and editor:HasFocus() then return end -- Enter: stay open so it can be fixed
+    end
+  end
+  editing = nil -- first, so the focus-lost below does nothing
+  editor:ClearFocus()
+  editor:Hide()
+  if AIPin_RefreshPanel then AIPin_RefreshPanel() end
+end
+
+local function StartEdit(r)
+  if not (panel and r and r.todo and AIPin_TodoFormat and AIPin_TodoEdit) then return end
+  if editing then
+    StopEdit(true)
+    if editing then return end -- the open edit is invalid; finish that one first
+  end
+  if not editor then
+    editor = CreateFrame("EditBox", nil, panel.todoWell.scroll.child, BD)
+    editor:SetHeight(24)
+    editor:SetFontObject(ChatFontNormal or GameFontHighlight)
+    editor:SetTextInsets(6, 6, 0, 0)
+    editor:SetAutoFocus(false)
+    editor:SetMaxLetters(200)
+    Paint(editor, FLAT, { 0, 0, 0, 0.6 }, { 1, 0.82, 0.3, 0.7 })
+    editor:SetScript("OnEnterPressed", function() StopEdit(true) end)
+    editor:SetScript("OnEscapePressed", function() StopEdit(false) end)
+    editor:SetScript("OnEditFocusLost", function() StopEdit(true) end)
+  end
+  local i = TodoIndex(r.todo)
+  if not i then return end
+  editing = r.todo
+  GameTooltip:Hide()
+  r.text:Hide(); r.loc:Hide(); r.strike:Hide()
+  editor:SetText(AIPin_TodoFormat(i) or "")
+  AnchorEditor(r)
+  editor:Show()
+  editor:SetFocus()
+  editor:HighlightText()
+end
 
 local function StyleTab(b, selected, over)
   if selected then
@@ -273,16 +431,20 @@ local function RefreshPins()
       r.bar:SetPoint("TOPLEFT", 0, -5)
       r.bar:SetPoint("BOTTOMLEFT", 0, 5)
       r.bar:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 0.9)
-      -- Click a row to move the waypoint there; the × button still deletes.
+      -- Click a row to move the waypoint there; drag it to reorder; the × button still deletes.
       local function RowTip(self)
+        if drag then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(self.active and "当前导航点" or "点击设为导航点", 1, 1, 1)
+        GameTooltip:AddLine("拖动可排序", C.dim[1], C.dim[2], C.dim[3])
         GameTooltip:Show()
       end
       r:SetScript("OnEnter", RowTip)
       r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      Draggable(r, "pinWell", PIN_ROW, PinCount, MovePin)
       r:SetScript("OnMouseUp", function(self, button)
-        if button ~= "LeftButton" or not self:IsMouseOver() then return end
+        if drag then FinishDrag() return end
+        if justDragged or button ~= "LeftButton" or not self:IsMouseOver() then return end
         if self.pin and AIPin_API and AIPin_API.WaypointTo then AIPin_API.WaypointTo(self.pin) end
         RowTip(self) -- WaypointTo refreshed the list, so self.active is current
       end)
@@ -290,7 +452,7 @@ local function RefreshPins()
       pinRows[i] = r
     end
     local active = AIPin_API and AIPin_API.IsWaypointPin and AIPin_API.IsWaypointPin(p)
-    r.pin, r.active = p, active
+    r.pin, r.active, r.index = p, active, i
     r.sel:SetShown(active and true or false)
     r.bar:SetShown(active and true or false)
     r:ClearAllPoints()
@@ -338,21 +500,34 @@ local function RefreshTodos()
       r.strike:SetPoint("LEFT", r.text, "LEFT", 0, 0)
       r:SetScript("OnEnter", function(self)
         local tt = self.todo
-        if not tt or not tt.map then return end
+        if not tt or drag then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(tt.text, C.gold[1], C.gold[2], C.gold[3])
-        if tt.x and tt.y then
+        GameTooltip:AddLine(tt.text, C.gold[1], C.gold[2], C.gold[3], true)
+        if tt.map and tt.x and tt.y then
           GameTooltip:AddLine(string.format("到达 %s %.1f, %.1f 附近时提醒", ZoneName(tt.map), tt.x, tt.y), 1, 1, 1)
-        else
+        elseif tt.map then
           GameTooltip:AddLine(string.format("进入 %s 时提醒", ZoneName(tt.map)), 1, 1, 1)
         end
+        GameTooltip:AddLine("双击编辑 · 拖动排序", C.dim[1], C.dim[2], C.dim[3])
         GameTooltip:Show()
       end)
       r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      Draggable(r, "todoWell", TODO_ROW, TodoCount, MoveTodo)
+      r:SetScript("OnMouseUp", function(self, button)
+        if drag then FinishDrag() return end
+        if justDragged or button ~= "LeftButton" or not self:IsMouseOver() then return end
+        local now = GetTime()
+        if lastClick.todo == self.todo and now - (lastClick.at or 0) < DOUBLE_CLICK then
+          lastClick.todo = nil
+          StartEdit(self)
+        else
+          lastClick.todo, lastClick.at = self.todo, now
+        end
+      end)
       RowHover(r, r.cb, r.del)
       todoRows[i] = r
     end
-    r.todo = t
+    r.todo, r.index = t, i
     r:ClearAllPoints()
     r:SetPoint("TOPLEFT", 0, -(i - 1) * TODO_ROW)
     r:SetWidth(LIST_W)
@@ -379,7 +554,19 @@ local function RefreshTodos()
       r.loc:SetAlpha(1)
       r.strike:Hide()
     end
+    local isEditing = editing == t
+    r.text:SetShown(not isEditing)
+    r.loc:SetShown(not isEditing)
+    if isEditing then
+      r.strike:Hide()
+      AnchorEditor(r) -- follows the todo if the list moved under it
+    end
     r:Show()
+  end
+  if editing and not TodoIndex(editing) then -- deleted while being edited
+    editing = nil
+    editor:ClearFocus()
+    editor:Hide()
   end
   local n = #todos
   child:SetHeight(math.max(n, 1) * TODO_ROW)
@@ -399,6 +586,7 @@ function AIPin_RefreshPanel()
 end
 
 ShowTab = function(which)
+  if editing and which ~= "todo" then StopEdit(true, true) end
   activeTab = which
   if not panel then return end
   panel.todoPage:SetShown(which == "todo")
@@ -547,7 +735,7 @@ local function CreatePanel()
   pinHint:SetJustifyH("RIGHT")
   pinHint:SetWordWrap(false)
   pinHint:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
-  pinHint:SetText("点击标记设为导航点，按 M 打开地图")
+  pinHint:SetText("点击设为导航点 · 拖动排序 · 按 M 打开地图")
 
   panel.pinWell = ListWell(pinPage, "AIPinPinScroll", LIST_W)
   panel.pinWell:SetPoint("TOPLEFT", 0, 0)
@@ -567,6 +755,10 @@ local function CreatePanel()
   panel.info:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
 
   panel:SetScript("OnShow", function() ShowTab(activeTab or "todo") end)
+  panel:SetScript("OnHide", function()
+    FinishDrag(true) -- closed mid-drag: drop nothing
+    StopEdit(true, true) -- closed mid-edit: keep the change if it is valid
+  end)
   panel:Hide()
   if UISpecialFrames then table.insert(UISpecialFrames, "AIPinPanel") end
   ShowTab(activeTab)

@@ -1,5 +1,14 @@
 # CHANGELOG / 更新日志
 
+## 1.4.7 - 2026-11-06
+
+- 面板里的待办和标记都能拖动排序。
+- 双击待办可以直接修改，写法和添加时一样，也能改 @ 区域和坐标。
+- 标记超过 20 个时，删掉最早添加的那个，而不是列表最上面的。
+- Drag to reorder todos and pins in the panel.
+- Double-click a todo to edit it, using the same syntax as adding, including its @ zone and coordinates.
+- Over 20 pins, the oldest one added is dropped, not the one at the top of the list.
+
 ## 1.4.6 - 2026-11-06
 
 - 点面板「标记」里的一行，红旗导航点和屏幕上的导航标记就换到那个标记，选中的一行会高亮。世界地图开着时会跳到那个标记所在的地图。
