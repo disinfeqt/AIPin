@@ -238,7 +238,7 @@ local function WaypointTo(p)
   if not (p and p.uiMapID and p.x and p.y) then return false end
   if SetNativeWaypoint(p.uiMapID, p.x / 100, p.y / 100, p.title, true) then
     Print(string.format(L.waypoint, p.title or "AIPin", MapName(p.uiMapID), p.x, p.y))
-    -- If the world map is open on another map, go to the pin's so the red flag shows.
+    -- If the world map is open on another map, go to the pin's so its waypoint marker shows.
     local wm = WorldMapFrame
     if wm and wm:IsShown() and wm.GetMapID and wm.SetMapID and wm:GetMapID() ~= p.uiMapID
        and not (InCombatLockdown and InCombatLockdown()) then

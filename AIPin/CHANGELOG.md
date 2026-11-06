@@ -11,8 +11,8 @@
 
 ## 1.4.6 - 2026-11-06
 
-- 点面板「标记」里的一行，红旗导航点和屏幕上的导航标记就换到那个标记，选中的一行会高亮。世界地图开着时会跳到那个标记所在的地图。
-- Click a row in the panel's Pins tab to move the red-flag waypoint and the on-screen marker there; the selected row is highlighted. If the world map is open, it jumps to that pin's map.
+- 点面板「标记」里的一行，就把导航点设到那个标记：地图上的方形标记和屏幕上的导航指示都会换过去，选中的一行会高亮。世界地图开着时会跳到那个标记所在的地图。
+- Click a row in the panel's Pins tab to make that pin the waypoint: the square marker on the map and the on-screen marker both move there, and the selected row is highlighted. If the world map is open, it jumps to that pin's map.
 
 ## 1.4.5 - 2026-11-06
 
