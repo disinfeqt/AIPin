@@ -87,8 +87,7 @@ p {
   margin: 0;
 }
 
-code,
-kbd {
+code {
   font-family: var(--mono);
   font-size: 0.88em;
 }
@@ -100,14 +99,6 @@ kbd {
   border: 1px solid rgba(226, 182, 90, 0.18);
   color: #f6dc9a;
   overflow-wrap: anywhere;
-}
-
-kbd {
-  padding: 0.05em 0.45em;
-  border-radius: 5px;
-  background: #221b12;
-  border: 1px solid rgba(226, 182, 90, 0.35);
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.5);
 }
 
 .container {

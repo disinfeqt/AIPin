@@ -33,13 +33,13 @@ Edit `Inbox.lua`, then ask the player to right-click the AIPin minimap button to
 
 ```lua
 AIPinInbox = {
-  version = 4,  -- previous version + 1, or nothing is imported
+  version = 4,  -- higher than any version imported before, or nothing is imported
   pins  = { { zone = "暴风城", x = 63.9, y = 69.1, title = "法杖训练师" } },
   todos = { { text = "学法杖", zone = "暴风城" } },
 }
 ```
 
-- Read the file first and bump `version`. If it was reset, use a number above `inboxVersion` and `todoInboxVersion` in `AIPinDB`.
+- Set `version` above the file's current `version` and above `inboxVersion` and `todoInboxVersion` in `AIPinDB` (updating the addon resets the file to 0).
 - Only list new entries. `zone` is an English or Chinese zone name (table at the top of `AIPin.lua`), or use `map = <uiMapID>`;
   the snapshot's `uiMapID` works for the player's current zone. `x`/`y` are map percent (0–100), as on Wowhead.
 - At most 20 pins are kept (oldest dropped). The last pin in `pins` gets the waypoint arrow, so list the next destination last.

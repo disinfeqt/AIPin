@@ -78,8 +78,8 @@
           </button>
         </div>
         <p class="hero-prompt" id="agent-prompt">
-          <span lang="zh-CN">发给 Claude Code、Codex 等 AI 助手：<span data-copy-src>阅读 <span class="hero-prompt-url">{{INSTALL_PROMPT_URL}}</span>，帮我安装或更新 AIPin，学会怎么用它，然后根据我的角色信息帮我规划接下来做什么。</span></span>
-          <span lang="en">For Claude Code, Codex and similar: <span data-copy-src>Read <span class="hero-prompt-url">{{INSTALL_PROMPT_URL}}</span>, install or update AIPin, learn to use it, then use my character data to help me plan what to do next.</span></span>
+          <span lang="zh-CN">发给 Claude Code、Codex 等 AI 助手：<span data-copy-src>阅读 <span class="hero-prompt-url">{{INSTALL_PROMPT_URL}}</span>，帮我安装或更新 AIPin，然后根据我的角色帮我规划接下来做什么。</span></span>
+          <span lang="en">For Claude Code, Codex and similar: <span data-copy-src>Read <span class="hero-prompt-url">{{INSTALL_PROMPT_URL}}</span>, install or update AIPin, then help me plan what to do next based on my character.</span></span>
         </p>
       </div>
     </section>
@@ -96,35 +96,35 @@
               <svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
             </span>
             <h3><span lang="zh-CN">地图标记</span><span lang="en">Map pins</span></h3>
-            <p><span lang="zh-CN">NPC 和地点直接标在世界地图上，可以同时显示多个标记，鼠标悬停显示名字和坐标。最新的标记还会设置游戏的导航箭头，箭头上显示标记名字。</span><span lang="en">NPCs and places are pinned right on the world map, several at once; hover a pin for its name and coordinates. The newest pin also sets the game's waypoint arrow, labelled with the pin's name.</span></p>
+            <p><span lang="zh-CN">NPC 和地点标在世界地图上，悬停显示名字和坐标。最新的标记会设置导航箭头。</span><span lang="en">NPCs and places on the world map; hover for name and coordinates. The newest pin sets the waypoint arrow.</span></p>
           </article>
           <article class="card feature feature-wide">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="m4 6 1.5 1.5 3-3"/><path d="M11.5 6H20"/><path d="m4 12 1.5 1.5 3-3"/><path d="M11.5 12H20"/><rect x="4.25" y="17" width="4" height="4" rx="1"/><path d="M11.5 19H20"/></svg>
             </span>
             <h3><span lang="zh-CN">待办清单 &amp; 地理提醒</span><span lang="en">Todos &amp; geo-reminders</span></h3>
-            <p><span lang="zh-CN">添加待办，给它设一个区域，到了就提醒。只写区域名就行，比如 <code>@ 暴风城</code>，不用背坐标。也可以在面板里直接添加，或点「提醒在此处」记下当前位置。</span><span lang="en">Add a todo, attach a zone, and get reminded when you arrive. A zone name such as <code>@ Stormwind</code> is enough; no coordinates needed. You can also add todos in the panel, or click 提醒在此处 (Remind here) to use your current spot.</span></p>
+            <p><span lang="zh-CN">给待办加上区域，比如 <code>@ 暴风城</code>，到了就提醒。</span><span lang="en">Give a todo a zone, such as <code>@ Stormwind</code>, and get reminded when you arrive.</span></p>
           </article>
           <article class="card feature">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 3v8m-3-3 3 3 3-3"/><path d="M3.5 14H8l1.5 2.5h5L16 14h4.5"/><path d="M5.5 7.5 3.5 14v5a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-5l-2-6.5"/></svg>
             </span>
             <h3><span lang="zh-CN">助手推送</span><span lang="en">Assistant push</span></h3>
-            <p><span lang="zh-CN">能改你电脑文件的 AI 助手可以直接编辑 <code>Inbox.lua</code>，推送标记和待办，同步后自动导入。</span><span lang="en">An AI agent that can edit files on your computer writes pins and todos into <code>Inbox.lua</code>; they are imported on the next sync.</span></p>
+            <p><span lang="zh-CN">能改文件的 AI 助手把标记和待办写进 <code>Inbox.lua</code>，同步后导入。</span><span lang="en">Agents that can edit files write pins and todos into <code>Inbox.lua</code>; they're imported on sync.</span></p>
           </article>
           <article class="card feature">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6z"/><circle cx="12" cy="10" r="2.2"/><path d="M8.5 16c.8-1.7 2-2.5 3.5-2.5s2.7.8 3.5 2.5"/></svg>
             </span>
             <h3><span lang="zh-CN">角色信息</span><span lang="en">Character snapshot</span></h3>
-            <p><span lang="zh-CN">等级、经验、金币、位置、天赋、专业、任务进度、装备等保存在 <code>AIPinChars</code>，助手可以读取。打开过的专业窗口还会记下已学图样，助手可以据此推荐做什么装备。</span><span lang="en">Level, XP, money, location, talents, professions, quest progress, gear and more are saved to <code>AIPinChars</code> for your assistant to read. Open a profession window once and its learned recipes are saved too, so your assistant can suggest what to craft.</span></p>
+            <p><span lang="zh-CN">等级、金币、位置、天赋、专业、任务、装备和已学图样，供助手读取。</span><span lang="en">Level, money, location, talents, professions, quests, gear and learned recipes, for your assistant to read.</span></p>
           </article>
           <article class="card feature">
             <span class="feature-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="8"/><path d="m14.5 9.5-2.2 5.3-5.3 2.2 2.2-5.3z"/><circle class="feature-icon-badge" cx="19" cy="5" r="3"/></svg>
             </span>
             <h3><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></h3>
-            <p><span lang="zh-CN">左键打开面板（待办 / 标记两个标签页），右键同步。角标显示未完成的待办数量。</span><span lang="en">Left-click opens the panel with Todos and Pins tabs; right-click syncs. A badge shows how many todos are still open.</span></p>
+            <p><span lang="zh-CN">左键打开待办和标记面板，右键同步。</span><span lang="en">Left-click for todos and pins, right-click to sync.</span></p>
           </article>
         </div>
       </div>
@@ -146,12 +146,7 @@
             </ol>
 
             <h3 class="sub-head" id="update"><span lang="zh-CN">更新</span><span lang="en">Updating</span></h3>
-            <ol class="howto">
-              <li><span lang="zh-CN">退出游戏，下载新的 <a href="{{DOWNLOAD_URL}}">AIPin.zip</a>。</span><span lang="en">Quit the game and download the new <a href="{{DOWNLOAD_URL}}">AIPin.zip</a>.</span></li>
-              <li><span lang="zh-CN">删掉旧的 <code>AIPin</code> 文件夹，换成新的。</span><span lang="en">Delete the old <code>AIPin</code> folder and put the new one in its place.</span></li>
-            </ol>
-            <p class="note"><span lang="zh-CN">标记、待办和角色信息保存在 <code>_forever_/WTF/Account/&lt;账号&gt;/SavedVariables/AIPin.lua</code>，专业图样保存在各角色自己的目录下，替换插件文件夹都不会丢失。</span><span lang="en">Pins, todos and character data are stored in <code>_forever_/WTF/Account/&lt;account&gt;/SavedVariables/AIPin.lua</code>, and recipes in each character's own folder; replacing the addon folder keeps all of them.</span></p>
-            <p class="note"><span lang="zh-CN">如果助手用 <code>Inbox.lua</code> 推送过标记或待办，替换前先备份旧的 <code>Inbox.lua</code>，换完再放回去，否则之后的推送可能不会被导入。</span><span lang="en">If your assistant has pushed pins or todos through <code>Inbox.lua</code>, back up the old <code>Inbox.lua</code> before replacing the folder and copy it back afterwards; otherwise later pushes may not be imported.</span></p>
+            <p class="note"><span lang="zh-CN">退出游戏，用新的 <code>AIPin</code> 文件夹替换旧的。数据存在 <code>WTF</code> 文件夹里，不会丢失。</span><span lang="en">Quit the game and replace the old <code>AIPin</code> folder with the new one. Your data lives in <code>WTF</code> and is kept.</span></p>
           </div>
 
           <div class="install-side">
@@ -170,7 +165,6 @@
     ├── AIPin.toc
     └── …</code></pre>
             </div>
-            <p class="note"><span lang="zh-CN">不要多套一层 <code>AIPin/AIPin/</code>。游戏装在别处的话，在战网客户端 Forever 的齿轮菜单里打开游戏文件夹。</span><span lang="en">Avoid a double <code>AIPin/AIPin/</code> folder. If the game is installed elsewhere, open its folder from the gear menu next to Forever in the Battle.net app.</span></p>
           </div>
         </div>
       </div>
@@ -184,35 +178,28 @@
         </header>
 
         <div class="usage">
-          <p class="note"><span lang="zh-CN">把助手给你的指令粘贴到聊天框。坐标是地图百分比（0–100），和 Wowhead 一样；省略区域则用当前地图。按 <kbd>M</kbd> 查看标记。待办加上 <code>@ 区域</code>，进入该区域时提醒；再写上坐标，则走到附近时提醒。</span><span lang="en">Paste the command from your assistant into chat. Coordinates are map percentages (0–100), the same as Wowhead; leave out the zone to use your current map. Press <kbd>M</kbd> to see the pin. Add <code>@ zone</code> to a todo to be reminded when you enter that zone, or add coordinates as well to be reminded near a spot. In-game messages are in Simplified Chinese.</span></p>
+          <p class="note"><span lang="zh-CN">把助手给的指令粘贴到聊天框。坐标和 Wowhead 一样；省略区域则用当前地图。</span><span lang="en">Paste your assistant's command into chat. Coordinates are the same as Wowhead; leave out the zone to use your current map. In-game text is in Chinese.</span></p>
 
           <div class="code" data-copy>
             <div class="code-head"><span lang="zh-CN">示例</span><span lang="en">Examples</span></div>
             <pre><code lang="zh-CN">/aipin 丹莫罗 44.1 57.1 巡山人格雷琴
-/aipin 44.1 57.1 巡山人格雷琴
-/aipin todo 学法杖 @ 暴风城
-/aipin todo 买背包</code><code lang="en">/aipin Dun Morogh 44.1 57.1 Mountaineer Gretchen
-/aipin 44.1 57.1 Mountaineer Gretchen
-/aipin todo Learn staves @ Stormwind
-/aipin todo Buy bags</code></pre>
+/aipin todo 学法杖 @ 暴风城</code><code lang="en">/aipin Dun Morogh 44.1 57.1 Mountaineer Gretchen
+/aipin todo Learn staves @ Stormwind</code></pre>
           </div>
 
           <dl class="cmd-list card">
             <div><dt><code>/aipin &lt;<span lang="zh-CN">区域</span><span lang="en">zone</span>&gt; &lt;x&gt; &lt;y&gt; &lt;<span lang="zh-CN">名称</span><span lang="en">title</span>&gt;</code></dt><dd><span lang="zh-CN">添加标记</span><span lang="en">Add a pin</span></dd></div>
-            <div><dt><code>/aipin list</code></dt><dd><span lang="zh-CN">列出标记</span><span lang="en">List pins</span></dd></div>
-            <div><dt><code>/aipin clear</code></dt><dd><span lang="zh-CN">清除全部标记</span><span lang="en">Remove all pins</span></dd></div>
-            <div><dt><code>/aipin todo &lt;<span lang="zh-CN">内容</span><span lang="en">text</span>&gt; [@ &lt;<span lang="zh-CN">区域</span><span lang="en">zone</span>&gt; [x y]]</code></dt><dd><span lang="zh-CN">添加待办；带 <code>@ 区域</code> 就是地理提醒</span><span lang="en">Add a todo; with <code>@ zone</code> it becomes a geo-reminder</span></dd></div>
-            <div><dt><code>/aipin todos</code></dt><dd><span lang="zh-CN">列出待办（带编号）</span><span lang="en">List todos with their numbers</span></dd></div>
-            <div><dt><code>/aipin done N</code></dt><dd><span lang="zh-CN">把第 N 条待办标为完成</span><span lang="en">Mark todo N as done</span></dd></div>
-            <div><dt><code>/aipin undone N</code></dt><dd><span lang="zh-CN">把第 N 条待办改回未完成</span><span lang="en">Mark todo N as not done</span></dd></div>
-            <div><dt><code>/aipin deltodo N</code></dt><dd><span lang="zh-CN">删除第 N 条待办</span><span lang="en">Delete todo N</span></dd></div>
+            <div><dt><code>/aipin list</code> / <code>clear</code></dt><dd><span lang="zh-CN">列出 / 清除标记</span><span lang="en">List / remove pins</span></dd></div>
+            <div><dt><code>/aipin todo &lt;<span lang="zh-CN">内容</span><span lang="en">text</span>&gt; [@ &lt;<span lang="zh-CN">区域</span><span lang="en">zone</span>&gt; [x y]]</code></dt><dd><span lang="zh-CN">添加待办，带区域则到了提醒</span><span lang="en">Add a todo; with a zone, remind on arrival</span></dd></div>
+            <div><dt><code>/aipin todos</code></dt><dd><span lang="zh-CN">列出待办</span><span lang="en">List todos</span></dd></div>
+            <div><dt><code>/aipin done N</code> / <code>undone N</code> / <code>deltodo N</code></dt><dd><span lang="zh-CN">完成 / 取消完成 / 删除第 N 条</span><span lang="en">Mark done / not done / delete todo N</span></dd></div>
             <div><dt><code>/aipin cleartodos</code></dt><dd><span lang="zh-CN">清除已完成的待办</span><span lang="en">Remove finished todos</span></dd></div>
-            <div><dt><code>/aipin me</code></dt><dd><span lang="zh-CN">显示角色简要信息</span><span lang="en">Show a short character summary</span></dd></div>
-            <div><dt><code>/aipin sync</code></dt><dd><span lang="zh-CN">同步：保存角色信息并导入助手推送的标记和待办（会重载界面，战斗中不可用）</span><span lang="en">Sync: save the character snapshot and import assistant pins and todos (reloads the UI; not in combat)</span></dd></div>
-            <div><dt><code>/aipin minimap</code></dt><dd><span lang="zh-CN">显示 / 隐藏小地图按钮</span><span lang="en">Show / hide the minimap button</span></dd></div>
-            <div><dt><code>/aipin help</code></dt><dd><span lang="zh-CN">显示帮助</span><span lang="en">Show help</span></dd></div>
-            <div><dt><code>/ap</code></dt><dd><span lang="zh-CN"><code>/aipin</code> 的简写，所有命令都能用</span><span lang="en">Short for <code>/aipin</code>; works with every command</span></dd></div>
-            <div><dt><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></dt><dd><span lang="zh-CN">左键打开面板（待办 / 标记），右键同步（同 <code>/aipin sync</code>），拖动可移动位置</span><span lang="en">Left-click for the panel (Todos / Pins), right-click to sync (same as <code>/aipin sync</code>), drag to move it</span></dd></div>
+            <div><dt><code>/aipin me</code></dt><dd><span lang="zh-CN">显示角色信息</span><span lang="en">Show character info</span></dd></div>
+            <div><dt><code>/aipin sync</code></dt><dd><span lang="zh-CN">保存角色信息，导入助手推送（重载界面）</span><span lang="en">Save character info and import pushes (reloads the UI)</span></dd></div>
+            <div><dt><code>/aipin minimap</code></dt><dd><span lang="zh-CN">显示 / 隐藏小地图按钮</span><span lang="en">Toggle the minimap button</span></dd></div>
+            <div><dt><code>/aipin help</code></dt><dd><span lang="zh-CN">全部命令</span><span lang="en">All commands</span></dd></div>
+            <div><dt><code>/ap</code></dt><dd><span lang="zh-CN"><code>/aipin</code> 的简写</span><span lang="en">Short for <code>/aipin</code></span></dd></div>
+            <div><dt><span lang="zh-CN">小地图按钮</span><span lang="en">Minimap button</span></dt><dd><span lang="zh-CN">左键面板，右键同步，可拖动</span><span lang="en">Left-click for the panel, right-click to sync, drag to move</span></dd></div>
           </dl>
         </div>
       </div>
@@ -225,13 +212,11 @@
           <div class="flourish" aria-hidden="true"><span></span></div>
         </header>
 
-        <p class="note"><span lang="zh-CN">把 <a href="{{AGENTS_URL}}">AGENTS.md</a> 交给你的 AI 助手（插件文件夹里也有一份）。要点：</span><span lang="en">Give <a href="{{AGENTS_URL}}">AGENTS.md</a> to your AI assistant (a copy is also in the addon folder). In short:</span></p>
+        <p class="note"><span lang="zh-CN">把 <a href="{{AGENTS_URL}}">AGENTS.md</a> 交给 AI 助手。要点：</span><span lang="en">Give <a href="{{AGENTS_URL}}">AGENTS.md</a> to your AI assistant. In short:</span></p>
         <ul class="agent-list">
-          <li><span lang="zh-CN">安装 / 更新：下载最新的 AIPin.zip，解压到 <code>Interface/AddOns/</code>，保留旧的 <code>Inbox.lua</code>。<a href="{{INSTALL_PROMPT_URL}}">INSTALL.md</a> 里有 macOS 和 Windows 的完整命令。</span><span lang="en">Install / update: download the latest AIPin.zip, unpack it into <code>Interface/AddOns/</code> and keep the old <code>Inbox.lua</code>. <a href="{{INSTALL_PROMPT_URL}}">INSTALL.md</a> has the full commands for macOS and Windows.</span></li>
-          <li><span lang="zh-CN">先读 <code>WTF/Account/*/SavedVariables/AIPin.lua</code> 里的 <code>AIPinChars</code>（只读，取 <code>updated</code> 最新的一条）。等级、任务进度、金币、专业、装备都在里面，按玩家的实际情况给建议，不用再问；数据太旧就请玩家同步一次。</span><span lang="en">Start by reading <code>AIPinChars</code> in <code>WTF/Account/*/SavedVariables/AIPin.lua</code> (read-only; use the entry with the newest <code>updated</code>). Level, quest progress, gold, professions and gear are all there, so advice can fit the player without asking; if it's stale, ask them to sync.</span></li>
-          <li><span lang="zh-CN">回复一行 <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code> 或 <code>/aipin todo &lt;text&gt; @ &lt;zone&gt;</code>，让玩家粘贴到聊天框。</span><span lang="en">Reply with <code>/aipin &lt;zone&gt; &lt;x&gt; &lt;y&gt; &lt;title&gt;</code> or <code>/aipin todo &lt;text&gt; @ &lt;zone&gt;</code> for the player to paste into chat.</span></li>
-          <li><span lang="zh-CN">或编辑 <code>Interface/AddOns/AIPin/Inbox.lua</code>：<code>version</code> 加 1，在 <code>pins</code> / <code>todos</code> 里写新条目，然后让玩家<strong>右键</strong>小地图按钮同步。</span><span lang="en">Or edit <code>Interface/AddOns/AIPin/Inbox.lua</code>: bump <code>version</code> by 1, add new entries to <code>pins</code> or <code>todos</code>, then ask the player to <strong>right-click</strong> the minimap button to sync.</span></li>
-          <li><span lang="zh-CN">问做什么装备时，读该角色目录下的 <code>AIPinRecipes</code>（已学图样；玩家打开过对应的专业窗口才会记录）。</span><span lang="en">When asked what to craft, read <code>AIPinRecipes</code> in that character's folder (learned recipes; saved once the player has opened that profession's window).</span></li>
+          <li><span lang="zh-CN">按 <a href="{{INSTALL_PROMPT_URL}}">INSTALL.md</a> 安装和更新。</span><span lang="en">Install and update with <a href="{{INSTALL_PROMPT_URL}}">INSTALL.md</a>.</span></li>
+          <li><span lang="zh-CN">读 <code>WTF/Account/*/SavedVariables/AIPin.lua</code> 里的 <code>AIPinChars</code> 了解角色。</span><span lang="en">Read <code>AIPinChars</code> in <code>WTF/Account/*/SavedVariables/AIPin.lua</code> to know the character.</span></li>
+          <li><span lang="zh-CN">回复 <code>/aipin …</code> 让玩家粘贴，或写进 <code>Inbox.lua</code> 让玩家右键同步。</span><span lang="en">Reply with <code>/aipin …</code> to paste, or write to <code>Inbox.lua</code> and have the player right-click to sync.</span></li>
         </ul>
         <a class="btn btn-ghost" href="{{AGENTS_URL}}"><span lang="zh-CN">查看 AGENTS.md</span><span lang="en">Read AGENTS.md</span></a>
       </div>
