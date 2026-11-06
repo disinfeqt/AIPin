@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.6 - 2026-11-06
+
+- 点面板「标记」里的一行，红旗导航点和屏幕上的导航标记就换到那个标记，选中的一行会高亮。世界地图开着时会跳到那个标记所在的地图。
+- Click a row in the panel's Pins tab to move the red-flag waypoint and the on-screen marker there; the selected row is highlighted. If the world map is open, it jumps to that pin's map.
+
 ## 1.4.5 - 2026-11-06
 
 - 修复：同步或 /reload 后世界地图上看不到标记。现在打开地图或切换地图时，当前地图的所有标记都会显示，铁炉堡这类城市地图也一样。

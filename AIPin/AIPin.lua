@@ -206,11 +206,18 @@ local function SetNativeWaypoint(uiMapID, x, y, title, manual)
   if not ok or not can then return false end
   local point = UiMapPoint.CreateFromCoordinates(uiMapID, x, y)
   if not point then return false end
+  -- Title first: USER_WAYPOINT_UPDATED can fire inside SetUserWaypoint.
+  local prev = activeTitle
   activeTitle = { uiMapID = uiMapID, x = x, y = y, title = title, manual = manual or nil }
+  HookWaypointTooltip()
+  local set, wasSet = pcall(C_Map.SetUserWaypoint, point)
+  if not set or wasSet == false then
+    activeTitle = prev
+    return false
+  end
   EnsureDB()
   AIPinDB.activeWaypoint = activeTitle
-  HookWaypointTooltip()
-  C_Map.SetUserWaypoint(point)
+  -- Track it, so the on-screen marker and distance follow this pin.
   if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
     pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
   end
@@ -231,6 +238,12 @@ local function WaypointTo(p)
   if not (p and p.uiMapID and p.x and p.y) then return false end
   if SetNativeWaypoint(p.uiMapID, p.x / 100, p.y / 100, p.title, true) then
     Print(string.format(L.waypoint, p.title or "AIPin", MapName(p.uiMapID), p.x, p.y))
+    -- If the world map is open on another map, go to the pin's so the red flag shows.
+    local wm = WorldMapFrame
+    if wm and wm:IsShown() and wm.GetMapID and wm.SetMapID and wm:GetMapID() ~= p.uiMapID
+       and not (InCombatLockdown and InCombatLockdown()) then
+      pcall(wm.SetMapID, wm, p.uiMapID)
+    end
     RefreshPanel()
     return true
   end
