@@ -225,6 +225,18 @@ local function RecipeStore()
   return AIPinRecipes.professions
 end
 
+-- recipeCount / recipesUpdated per profession, from the recipe store.
+local function RecipeSummary(list)
+  local store = RecipeStore()
+  for _, p in ipairs(list) do
+    local entry = p.name and store[p.name]
+    if entry and p.kind ~= "gathering" and type(entry.recipes) == "table" then
+      entry.kind, entry.skillLine, entry.rank, entry.max = p.kind, p.skillLine, p.rank, p.max
+      p.recipeCount, p.recipesUpdated = #entry.recipes, entry.recipesUpdated
+    end
+  end
+end
+
 local function Recipes(list, old)
   local store = RecipeStore()
   -- 1.4.0 / 1.4.1 kept recipes inside AIPinChars; move them over once.
@@ -257,13 +269,7 @@ local function Recipes(list, old)
       end
     end
   end
-  for _, p in ipairs(list) do
-    local entry = p.name and store[p.name]
-    if entry and p.kind ~= "gathering" and type(entry.recipes) == "table" then
-      entry.kind, entry.skillLine, entry.rank, entry.max = p.kind, p.skillLine, p.rank, p.max
-      p.recipeCount, p.recipesUpdated = #entry.recipes, entry.recipesUpdated
-    end
-  end
+  RecipeSummary(list)
 end
 
 local function Professions(s, old)
@@ -363,6 +369,80 @@ end
 local function Realm(r) return type(r) == "string" and (r:gsub("[%s%-]", "")) or nil end
 local function RealmKey() return Realm(safe(try(GetNormalizedRealmName))) or Realm(safe(try(GetRealmName))) or "?" end
 
+-- Data readiness ----------------------------------------------------------------
+-- Right after login or a reload, XP, money, gear, professions and quest details can
+-- read as 0 / empty for a few seconds. A snapshot taken then must not wipe a good one.
+
+local function Empty(t) return type(t) ~= "table" or next(t) == nil end
+
+local function AtMaxLevel(s)
+  if try(IsPlayerAtEffectiveMaxLevel) then return true end
+  local cap = safe(try(GetMaxPlayerLevel)) or safe(MAX_PLAYER_LEVEL)
+  return (cap and s.level and s.level >= cap) or false
+end
+
+-- Whether the APIs had loaded when s was read (checked before merging in old data).
+-- XP has no max at the level cap, so it counts as loaded there.
+local function Complete(s)
+  local xp = (s.xpMax or 0) > 0 or AtMaxLevel(s)
+  local rest = not Empty(s.equipment) or not Empty(s.professions) or (s.bagTotal or 0) > 0
+  return (xp and rest) and true or false
+end
+
+local function TalentPoints(t)
+  local n = 0
+  if type(t) == "table" and type(t.tabs) == "table" then
+    for _, tab in ipairs(t.tabs) do n = n + (tonumber(tab.points) or 0) end
+  end
+  return n
+end
+
+-- Fill fields that read empty in s from the previous snapshot.
+local function Merge(s, old, complete)
+  if (s.xpMax or 0) == 0 and (tonumber(old.xpMax) or 0) > 0 and s.level == old.level then
+    s.xp, s.xpMax, s.restXP = old.xp, old.xpMax, old.restXP
+  end
+  if old.money and (s.money == nil or (s.money == 0 and not complete)) then s.money = old.money end
+  -- GetGuildInfo answers nil until the guild roster loads; IsInGuild knows sooner.
+  if not s.guild and old.guild and try(IsInGuild) then s.guild = old.guild end
+  if Empty(s.equipment) and not Empty(old.equipment) then s.equipment = old.equipment end
+  if Empty(s.professions) and not Empty(old.professions) then
+    local list = {}
+    for _, p in ipairs(old.professions) do
+      if type(p) == "table" then
+        local c = {}
+        for k, v in pairs(p) do if k ~= "recipes" then c[k] = v end end
+        list[#list + 1] = c
+      end
+    end
+    pcall(RecipeSummary, list)
+    s.professions = list
+  end
+  if (s.bagTotal or 0) == 0 and (tonumber(old.bagTotal) or 0) > 0 then
+    s.bagFree, s.bagTotal = old.bagFree, old.bagTotal
+  end
+  if not Empty(old.talents) and (Empty(s.talents)
+      or (not complete and TalentPoints(s.talents) == 0 and TalentPoints(old.talents) > 0)) then
+    s.talents = old.talents
+  end
+  if type(old.quests) == "table" then
+    if Empty(s.quests) and not complete then
+      s.quests = old.quests
+    elseif type(s.quests) == "table" then
+      local byID = {}
+      for _, q in ipairs(old.quests) do if type(q) == "table" and q.questID then byID[q.questID] = q end end
+      for _, q in ipairs(s.quests) do
+        local o = q.questID and byID[q.questID]
+        if o then
+          if Empty(q.objectives) and not Empty(o.objectives) then q.objectives = o.objectives end
+          if (q.level or 0) == 0 and (tonumber(o.level) or 0) > 0 then q.level = o.level end
+        end
+      end
+    end
+  end
+end
+
+-- Returns true when the game's data had loaded (see Complete).
 local function Snapshot()
   if type(AIPinChars) ~= "table" then AIPinChars = {} end
   local name = safe(try(UnitName, "player"))
@@ -389,23 +469,31 @@ local function Snapshot()
   end
   if old then s.timePlayed, s.timePlayedLevel = old.timePlayed, old.timePlayedLevel end
   for _, f in ipairs({ Location, Talents, Professions, Quests, Gear, Bags }) do pcall(f, s, old) end
+  local complete = Complete(s)
+  if old then pcall(Merge, s, old, complete) end
   s.updated = time()
   s.updatedText = date("%Y-%m-%d %H:%M:%S")
   AIPinChars[key] = s
   AIPin_LastChar = s
+  return complete
 end
 
 local pending, lastRun, scheduled = false, 0, false
 local function Request(force)
   if InCombatLockdown and InCombatLockdown() then pending = true; return end
   local now = GetTime()
-  if force or now - lastRun >= 5 then lastRun = now; pcall(Snapshot); return end
+  if force or now - lastRun >= 5 then
+    lastRun = now
+    local ok, complete = pcall(Snapshot)
+    return ok and complete or false
+  end
   if not scheduled and C_Timer then
     scheduled = true
     C_Timer.After(5 - (now - lastRun) + 0.1, function() scheduled = false; Request() end)
   end
 end
-AIPin_SnapshotNow = function() Request(true) end
+-- Returns true when the snapshot found the character's data loaded.
+AIPin_SnapshotNow = function() return Request(true) end
 
 local f = CreateFrame("Frame")
 for _, e in ipairs({ "PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_LEVEL_UP","QUEST_LOG_UPDATE","ZONE_CHANGED_NEW_AREA",

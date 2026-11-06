@@ -24,12 +24,35 @@ local function SetIcon(tex)
   end
 end
 
+-- SavedVariables are written at reload with whatever is in memory, so wait (up to
+-- ~8s) for the game's data to load first. Snapshot keeps old fields that still
+-- read empty, so reloading after the wait is safe either way.
+local SYNC_WAIT = 8
+local syncing = false
 function AIPin_Sync()
-  if InCombatLockdown and InCombatLockdown() then P("战斗中无法同步，请脱战后再试。") return end
-  if AIPin_SnapshotNow then pcall(AIPin_SnapshotNow) end
-  print("AIPin：正在同步…")
-  DB().lastSync = time()
-  ReloadUI()
+  if syncing then return end
+  local function InCombat() return InCombatLockdown and InCombatLockdown() end
+  if InCombat() then P("战斗中无法同步，请脱战后再试。") return end
+  syncing = true
+  local tries = 0
+  local function Attempt()
+    if InCombat() then syncing = false; P("战斗中无法同步，请脱战后再试。") return end
+    local complete = true
+    if AIPin_SnapshotNow then
+      local ok, res = pcall(AIPin_SnapshotNow)
+      complete = ok and res == true
+    end
+    if not complete and C_Timer and tries < SYNC_WAIT then
+      if tries == 0 then print("AIPin：等待角色数据加载…") end
+      tries = tries + 1
+      C_Timer.After(1, Attempt)
+      return
+    end
+    print("AIPin：正在同步…")
+    DB().lastSync = time()
+    ReloadUI()
+  end
+  Attempt()
 end
 
 local function Ago(t)

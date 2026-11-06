@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.4 - 2026-11-06
+
+- 修复：刚登录就同步会清空金钱、经验、装备、专业和任务目标。现在会等数据加载完再保存，读不到的保留上次的值。
+- Fix: syncing right after login could wipe money, XP, gear, professions and quest objectives. Sync now waits for the data to load, and anything still empty keeps its last saved value.
+
 ## 1.4.3 - 2026-11-05
 
 - 插件列表显示 AIPin 图标和版本号。
