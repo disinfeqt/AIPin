@@ -1,12 +1,12 @@
 ## Interface: 16001
 ## Interface-Forever: 16001
 ## Interface-Camelot: 16001
-## Title: AIPin |cff9d9d9dv1.4.8|r
+## Title: AIPin |cff9d9d9dv1.4.9|r
 ## IconTexture: Interface\AddOns\AIPin\media\icon
 ## Notes: Highlight NPCs your assistant points you to. Paste /aipin commands.
 ## Notes-zhCN: 在地图上高亮助手告诉你的 NPC 位置。粘贴 /aipin 指令即可。
 ## Author: WoW Forever (Grok Bot)
-## Version: 1.4.8
+## Version: 1.4.9
 ## SavedVariables: AIPinDB, AIPinChars
 ## SavedVariablesPerCharacter: AIPinRecipes
 ## AllowLoadGameType: forever

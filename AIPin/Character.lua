@@ -88,6 +88,47 @@ local function Kind(p)
     or (p.name and KIND_BY_NAME[p.name]) or (p.parentName and KIND_BY_NAME[p.parentName])
 end
 
+-- Each tier is a trainer spell that raises the skill cap (Journeyman Skinning:
+-- "使你获得150点的剥皮技能上限"), so the cap tells which tiers are learned. Blizzard's
+-- PROFESSION_RANKS names the rank from the cap the same way. Chinese tier names vary
+-- between translations (Journeyman is 中级 or 高级), so agents get the English key.
+local TIERS = { { 75, "apprentice" }, { 150, "journeyman" }, { 225, "expert" }, { 300, "artisan" } }
+
+local function Tier(p)
+  local max = tonumber(p.max) or 0
+  p.tier, p.nextTier = nil, nil
+  for i, t in ipairs(TIERS) do
+    if max >= t[1] then p.tier, p.nextTier = t[2], TIERS[i + 1] and TIERS[i + 1][2] end
+  end
+end
+
+-- GetProfessionInfo, the Skills tab (C_SkillInfo) and the profession window
+-- (C_TradeSkillUI) each report rank and cap; right after training or a login one can
+-- lag behind the others, so keep the highest.
+local function Raise(p, rank, max)
+  rank, max = tonumber(rank), tonumber(max)
+  if max and max > 0 then
+    if max > (p.max or 0) then p.max = max end
+    if rank and rank > (p.rank or 0) then p.rank = rank end
+  end
+end
+
+local function SkillLevels(p)
+  local id = p.skillLine
+  if not id then return end
+  if C_SkillInfo and C_SkillInfo.GetSkillLineInfoByID then
+    local info = try(C_SkillInfo.GetSkillLineInfoByID, id)
+    if type(info) == "table" then
+      Raise(p, safe(info.rank), safe(info.maxRank))
+      p.name = p.name or safe(info.name)
+    end
+  end
+  if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+    local info = try(C_TradeSkillUI.GetProfessionInfoBySkillLineID, id)
+    if type(info) == "table" then Raise(p, safe(info.skillLevel), safe(info.maxSkillLevel)) end
+  end
+end
+
 -- Learned recipes ---------------------------------------------------------------
 -- The game only exposes recipes while a profession window is open. Each snapshot
 -- tries to read the open window; professions that can't be read keep the recipes
@@ -231,7 +272,7 @@ local function RecipeSummary(list)
   for _, p in ipairs(list) do
     local entry = p.name and store[p.name]
     if entry and p.kind ~= "gathering" and type(entry.recipes) == "table" then
-      entry.kind, entry.skillLine, entry.rank, entry.max = p.kind, p.skillLine, p.rank, p.max
+      entry.kind, entry.skillLine, entry.rank, entry.max, entry.tier = p.kind, p.skillLine, p.rank, p.max, p.tier
       p.recipeCount, p.recipesUpdated = #entry.recipes, entry.recipesUpdated
     end
   end
@@ -269,34 +310,56 @@ local function Recipes(list, old)
       end
     end
   end
-  RecipeSummary(list)
 end
 
 local function Professions(s, old)
-  local list = {}
-  local got = false
+  local list, bySkill = {}, {}
+  local function Add(p)
+    if not (p.name or p.skillLine) then return end
+    if p.skillLine and bySkill[p.skillLine] then return end
+    if p.skillLine then bySkill[p.skillLine] = true end
+    list[#list + 1] = p
+  end
   if GetProfessions then
+    -- Forever returns up to seven slots (two primary, then secondary skills); empty ones are nil.
     local ids = { try(GetProfessions) }
-    for i = 1, 6 do
+    for i = 1, 10 do
       local idx = ids[i]
       if idx then
         local name, _, rank, maxRank, _, _, skillLine = try(GetProfessionInfo, idx)
-        if name then got = true; list[#list+1] = { name = safe(name), rank = safe(rank), max = safe(maxRank), skillLine = safe(skillLine) } end
+        if safe(name) then
+          local p = { name = safe(name), skillLine = safe(skillLine) }
+          Raise(p, safe(rank), safe(maxRank))
+          Add(p)
+        end
       end
     end
   end
-  if not got and GetNumSkillLines then
+  -- The Skills tab knows every profession by ID, including any GetProfessions left out.
+  if C_SkillInfo and C_SkillInfo.GetSkillLineInfoByID then
+    for id in pairs(KIND_BY_ID) do
+      if not bySkill[id] then
+        local info = try(C_SkillInfo.GetSkillLineInfoByID, id)
+        if type(info) == "table" and (tonumber(safe(info.maxRank)) or 0) > 0 then
+          Add({ name = safe(info.name), skillLine = id })
+        end
+      end
+    end
+  end
+  if #list == 0 and GetNumSkillLines and GetSkillLineInfo then
     -- Classic skill frame: keep professions, drop weapon skills, languages and the like.
     local n = safe(try(GetNumSkillLines)) or 0
     for i = 1, n do
       local name, isHeader, _, rank, _, _, maxRank, isAbandonable = try(GetSkillLineInfo, i)
       name = safe(name)
       if name and not isHeader and (KIND_BY_NAME[name] or isAbandonable) then
-        list[#list+1] = { name = name, rank = safe(rank), max = safe(maxRank) }
+        local p = { name = name }
+        Raise(p, safe(rank), safe(maxRank))
+        Add(p)
       end
     end
   end
-  for _, p in ipairs(list) do p.kind = Kind(p) end
+  for _, p in ipairs(list) do SkillLevels(p); p.kind = Kind(p) end
   pcall(Recipes, list, old)
   s.professions = list
 end
@@ -371,7 +434,9 @@ local function RealmKey() return Realm(safe(try(GetNormalizedRealmName))) or Rea
 
 -- Data readiness ----------------------------------------------------------------
 -- Right after login or a reload, XP, money, gear, professions and quest details can
--- read as 0 / empty for a few seconds. A snapshot taken then must not wipe a good one.
+-- read as 0 / empty for a few seconds. The PLAYER_LOGOUT snapshot is the one the game
+-- writes to disk, and one has come out with an empty XP bar under the level from
+-- before a level-up. A snapshot taken at either time must not wipe a good one.
 
 local function Empty(t) return type(t) ~= "table" or next(t) == nil end
 
@@ -381,12 +446,94 @@ local function AtMaxLevel(s)
   return (cap and s.level and s.level >= cap) or false
 end
 
+-- An XP read is good once the bar has a max; it has none at the level cap.
+local function XPRead(s) return (s.level or 0) > 0 and ((s.xpMax or 0) > 0 or AtMaxLevel(s)) end
+
 -- Whether the APIs had loaded when s was read (checked before merging in old data).
--- XP has no max at the level cap, so it counts as loaded there.
 local function Complete(s)
-  local xp = (s.xpMax or 0) > 0 or AtMaxLevel(s)
   local rest = not Empty(s.equipment) or not Empty(s.professions) or (s.bagTotal or 0) > 0
-  return (xp and rest) and true or false
+  return (XPRead(s) and rest) and true or false
+end
+
+-- The best reads of this session. Lua state starts over on every login and reload,
+-- so these always belong to the character being played.
+local seen = { prof = {} }
+
+-- XP never goes backwards, so a read behind the best one this session is stale.
+local function Behind(a, b)
+  if (a.level or 0) ~= (b.level or 0) then return (a.level or 0) < (b.level or 0) end
+  return (a.xp or 0) < (b.xp or 0)
+end
+
+-- level, xp, xpMax and restXP always come from the same good read.
+local function SettleXP(s, old)
+  local read = { level = s.level, xp = s.xp, xpMax = s.xpMax, restXP = s.restXP }
+  if XPRead(read) and not (seen.xp and Behind(read, seen.xp)) then seen.xp = read end
+  local g = seen.xp
+  -- Nothing good yet this session (just logged in): the saved bar, if it is for this level.
+  if not g and old and XPRead(old) and ((s.level or 0) == 0 or s.level == old.level) then g = old end
+  -- seen.level is the level PLAYER_LEVEL_UP announced, which UnitLevel can lag behind.
+  local level = math.max(s.level or 0, g and g.level or 0, seen.level or 0)
+  if g and g.level == level then
+    s.level, s.xp, s.xpMax, s.restXP = g.level, g.xp, g.xpMax, g.restXP
+  else
+    -- A new level whose bar hasn't read yet: leave XP out rather than save 0 or the old bar.
+    s.level = level > 0 and level or nil
+    s.xp, s.xpMax, s.restXP = nil, nil, nil
+  end
+end
+
+-- The location fields come from one read that found the player on a map; a read
+-- without one (logout, some interiors) keeps the last read that had one.
+local LOCATION = { "zone", "subzone", "uiMapID", "mapName", "x", "y" }
+local function SettleLocation(s, old)
+  if s.uiMapID then
+    seen.loc = {}
+    for _, k in ipairs(LOCATION) do seen.loc[k] = s[k] end
+    return
+  end
+  local g = seen.loc or (old and old.uiMapID and old)
+  if g then for _, k in ipairs(LOCATION) do s[k] = g[k] end end
+end
+
+-- The list read now says which professions are learned. A rank or cap that reads 0
+-- comes from this session's best read or the saved entry; one that falls behind this
+-- session's best is stale (skill and caps only go up while a profession is kept).
+local function SettleProfessions(s, old)
+  local list = s.professions
+  local before = old and type(old.professions) == "table" and old.professions or {}
+  if Empty(list) then
+    -- Not loaded yet: keep the saved list. Recipes live in AIPinRecipes, not here.
+    list = {}
+    for _, p in ipairs(before) do
+      if type(p) == "table" then
+        local c = {}
+        for k, v in pairs(p) do if k ~= "recipes" then c[k] = v end end
+        list[#list + 1] = c
+      end
+    end
+  else
+    local best = {}
+    for _, p in ipairs(list) do
+      local key = p.skillLine or p.name
+      local top = seen.prof[key]
+      if (p.max or 0) == 0 then
+        local o = top
+        if not o then
+          for _, q in ipairs(before) do if type(q) == "table" and SameProfession(p, q) then o = q; break end end
+        end
+        if o then p.rank, p.max = o.rank, o.max end
+      elseif top and (p.max < top.max or (p.max == top.max and (p.rank or 0) < (top.rank or 0))) then
+        p.rank, p.max = top.rank, top.max
+      end
+      if (p.max or 0) > 0 then best[key] = { rank = p.rank, max = p.max } end
+    end
+    -- A profession missing from a list that did load was unlearned; forget its best.
+    seen.prof = best
+  end
+  for _, p in ipairs(list) do Tier(p) end
+  pcall(RecipeSummary, list)
+  s.professions = list
 end
 
 local function TalentPoints(t)
@@ -397,26 +544,22 @@ local function TalentPoints(t)
   return n
 end
 
--- Fill fields that read empty in s from the previous snapshot.
+-- Fill the other fields that read empty in s from the previous snapshot.
 local function Merge(s, old, complete)
-  if (s.xpMax or 0) == 0 and (tonumber(old.xpMax) or 0) > 0 and s.level == old.level then
-    s.xp, s.xpMax, s.restXP = old.xp, old.xpMax, old.restXP
-  end
   if old.money and (s.money == nil or (s.money == 0 and not complete)) then s.money = old.money end
   -- GetGuildInfo answers nil until the guild roster loads; IsInGuild knows sooner.
   if not s.guild and old.guild and try(IsInGuild) then s.guild = old.guild end
-  if Empty(s.equipment) and not Empty(old.equipment) then s.equipment = old.equipment end
-  if Empty(s.professions) and not Empty(old.professions) then
-    local list = {}
-    for _, p in ipairs(old.professions) do
-      if type(p) == "table" then
-        local c = {}
-        for k, v in pairs(p) do if k ~= "recipes" then c[k] = v end end
-        list[#list + 1] = c
+  if Empty(s.equipment) and not Empty(old.equipment) then
+    s.equipment = old.equipment
+  elseif type(s.equipment) == "table" and type(old.equipment) == "table" then
+    -- An item's name and level can be missing until it is cached.
+    for slot, e in pairs(s.equipment) do
+      local o = old.equipment[slot]
+      if type(o) == "table" and o.itemID == e.itemID then
+        if not e.name or e.name == "" then e.name = o.name end
+        if e.itemLevel == nil then e.itemLevel = o.itemLevel end
       end
     end
-    pcall(RecipeSummary, list)
-    s.professions = list
   end
   if (s.bagTotal or 0) == 0 and (tonumber(old.bagTotal) or 0) > 0 then
     s.bagFree, s.bagTotal = old.bagFree, old.bagTotal
@@ -467,9 +610,11 @@ local function Snapshot()
       AIPinChars[k] = nil
     end
   end
+  if type(old) ~= "table" then old = nil end
   if old then s.timePlayed, s.timePlayedLevel = old.timePlayed, old.timePlayedLevel end
   for _, f in ipairs({ Location, Talents, Professions, Quests, Gear, Bags }) do pcall(f, s, old) end
   local complete = Complete(s)
+  for _, f in ipairs({ SettleXP, SettleLocation, SettleProfessions }) do pcall(f, s, old) end
   if old then pcall(Merge, s, old, complete) end
   s.updated = time()
   s.updatedText = date("%Y-%m-%d %H:%M:%S")
@@ -495,9 +640,18 @@ end
 -- Returns true when the snapshot found the character's data loaded.
 AIPin_SnapshotNow = function() return Request(true) end
 
+-- After a login, reload or loading screen, snapshot every 2s until the data has
+-- loaded (or ~20s pass), so the saved copy is a complete one.
+local settling = false
+local function Settle(tries)
+  if Request(true) or tries >= 10 then settling = false; return end
+  C_Timer.After(2, function() Settle(tries + 1) end)
+end
+
 local f = CreateFrame("Frame")
-for _, e in ipairs({ "PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_LEVEL_UP","QUEST_LOG_UPDATE","ZONE_CHANGED_NEW_AREA",
-  "PLAYER_MONEY","SKILL_LINES_CHANGED","PLAYER_EQUIPMENT_CHANGED","PLAYER_LOGOUT","PLAYER_REGEN_ENABLED","TIME_PLAYED_MSG",
+for _, e in ipairs({ "PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_LEVEL_UP","PLAYER_XP_UPDATE","UPDATE_EXHAUSTION",
+  "QUEST_LOG_UPDATE","ZONE_CHANGED_NEW_AREA","PLAYER_MONEY","SKILL_LINES_CHANGED","PLAYER_EQUIPMENT_CHANGED",
+  "PLAYER_LOGOUT","PLAYER_REGEN_ENABLED","TIME_PLAYED_MSG",
   -- Profession window open/updated: the only time recipes can be read. Not every
   -- client has every event; unknown ones are skipped by the pcall.
   "TRADE_SKILL_SHOW","TRADE_SKILL_LIST_UPDATE","TRADE_SKILL_DATA_SOURCE_CHANGED","TRADE_SKILL_UPDATE",
@@ -506,7 +660,12 @@ for _, e in ipairs({ "PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_LEVEL_UP","Q
 end
 f:SetScript("OnEvent", function(_, ev, a1, a2)
   if ev == "PLAYER_LOGIN" or ev == "PLAYER_ENTERING_WORLD" then
-    if C_Timer then C_Timer.After(3, function() Request(true) end) else Request(true) end
+    if not C_Timer then Request(true)
+    elseif not settling then settling = true; C_Timer.After(3, function() Settle(0) end) end
+  elseif ev == "PLAYER_LEVEL_UP" then
+    -- UnitLevel can still answer the old level during this event; a1 is the new one.
+    seen.level = math.max(seen.level or 0, tonumber(safe(a1)) or 0)
+    if C_Timer then C_Timer.After(1, function() Request(true) end) else Request(true) end
   elseif ev == "PLAYER_LOGOUT" then
     pcall(Snapshot)  -- final, even if in combat; fields guarded
   elseif ev == "PLAYER_REGEN_ENABLED" then
@@ -517,6 +676,6 @@ f:SetScript("OnEvent", function(_, ev, a1, a2)
       AIPinChars[key].timePlayed, AIPinChars[key].timePlayedLevel = safe(a1), safe(a2)
     end
   else
-    Request(ev == "PLAYER_LEVEL_UP")
+    Request()
   end
 end)

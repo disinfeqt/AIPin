@@ -23,7 +23,18 @@ Read the newest `AIPinChars` entry before answering anything about the player's 
 - **Check it's fresh.** `updatedText` is when it was last saved, in the player's local time. If it's older than this session or contradicts what they say, ask them to right-click the AIPin minimap button to sync, then read it again.
 - **Fit advice to the character:** `level`, `class` and `talents` for what to do next; `zone`, `x`, `y` to start with the nearest option; `money` (copper, 10000 = 1 gold) before suggesting training or purchases; `bagFree` before long farming runs; `hearth` when planning travel.
 - **Quests:** `objectives` (`have` / `need`) show what's left; quests with `isComplete` only need turning in.
-- **Professions:** `rank` at or near `max` means they need the next trainer; for gathering, suggest zones that match their `rank`.
+- **Professions:** `max` is the skill cap of the highest tier already learned, and `tier` names it:
+
+  | `tier` | `max` |
+  |---|---|
+  | `apprentice` | 75 |
+  | `journeyman` | 150 |
+  | `expert` | 225 |
+  | `artisan` | 300 |
+
+  Never tell them to learn `tier` or a lower one; it's done. `nextTier` is the one a trainer teaches next (none after artisan), worth it once `rank` is near `max`. No `tier` (older snapshot)? Read it from `max` with the table.
+  Chinese tier names differ between translations (Journeyman can read 中级 or 高级), so say the cap too, e.g. "下一级（上限 225）".
+  For gathering, suggest zones that match their `rank`.
 - **Turn advice into actions:** pin each stop, and add todos with a `zone` for things to do on arrival (train, sell, turn in). Write titles and todos in the player's language.
 - Several characters can be saved; use the newest `updated` unless the player names another.
 
@@ -59,13 +70,14 @@ For the player to paste when you can't write files:
 ## Character snapshot (`AIPinChars`)
 
 Written to disk on sync, `/reload` and logout. Keyed `"Name-Realm"` (realm without spaces or hyphens); use the entry with the newest `updated`. Any field can be missing.
+A field the game couldn't read keeps its last good value. `xp` / `xpMax` missing means the XP bar wasn't readable yet at that `level` (e.g. just levelled), not 0 XP.
 
 ```
 name, realm, race, class, sex, level, xp, xpMax, restXP, money (copper), guild, hearth,
 timePlayed (only after the player runs /played), zone, subzone, mapName, uiMapID, x, y (map percent),
 bagFree, bagTotal, updated (unix time), updatedText (player's local time),
 talents = { tabs = { {name, points} }, spec },
-professions = { {name, rank, max, kind = "crafting"|"gathering", recipeCount, recipesUpdated} },
+professions = { {name, skillLine, rank, max, tier, nextTier, kind = "crafting"|"gathering", recipeCount, recipesUpdated} },
 quests = { {questID, title, level, isComplete, objectives = { {text, have, need, done} }} },
 equipment = { HeadSlot = {itemID, name, itemLevel}, ... },
 ```

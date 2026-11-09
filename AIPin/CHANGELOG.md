@@ -1,5 +1,12 @@
 # CHANGELOG / 更新日志
 
+## 1.4.9 - 2026-11-09
+
+- 修复：/reload、下线或同步后，存档偶尔把经验存成 0、等级停在上一级、位置丢失。现在经验、等级和位置都取自同一次完整读取，读不到时保留这次游戏里最后读到的值，刚登录时会反复读取直到数据加载完。
+- 专业记录已学到哪一级（上限 75 / 150 / 225 / 300）和下一级是什么，AI 助手不会再让你去学已经学过的等级。刚训练完技能上限也会马上更新，漏读的专业会从技能面板补上。
+- Fix: after a /reload, logout or sync the save could show 0 XP, the previous level or no location. Level, XP and location now come from one complete read; anything the game can't read yet keeps the last value read this session, and right after login AIPin keeps reading until the data has loaded.
+- Professions record which tier you've learned (cap 75 / 150 / 225 / 300) and which comes next, so your AI assistant won't send you to learn a tier you already have. A new cap shows up right after training, and a profession the game's list missed is picked up from the Skills tab.
+
 ## 1.4.8 - 2026-11-07
 
 - 世界地图上的标记换成金色图钉，不再带方形背景，大小和地图上其他图标一致，缩放地图时也不会变大变小。图钉尖端正好指在坐标上，鼠标悬停时会变亮。
