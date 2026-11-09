@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.8 - 2026-11-07
+
+- 世界地图上的标记换成金色图钉，不再带方形背景，大小和地图上其他图标一致，缩放地图时也不会变大变小。图钉尖端正好指在坐标上，鼠标悬停时会变亮。
+- Map pins on the world map are now a gold pin with no square background, sized like the map's other icons and no longer growing or shrinking as you zoom. The tip of the pin sits on the exact spot, and it brightens when you hover it.
+
 ## 1.4.7 - 2026-11-06
 
 - 面板里的待办和标记都能拖动排序。

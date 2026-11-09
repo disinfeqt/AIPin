@@ -8,7 +8,7 @@
 
 ## 功能
 
-- **地图标记**：悬停显示名字和坐标，最新的标记会设置导航箭头。
+- **地图标记**：金色图钉标在世界地图上，悬停显示名字和坐标；点图钉或面板里的一行，导航点就设到那里。
 - **待办与地理提醒**：给待办加上区域，比如 `@ 暴风城`，到了就提醒。
 - **助手推送**：能改文件的 AI 助手把标记和待办写进 `Inbox.lua`，同步后导入。
 - **角色信息**：等级、金币、位置、天赋、专业、任务、装备和已学图样，供助手读取。
@@ -76,7 +76,7 @@ A World of Warcraft: Forever addon that lets your AI assistant pin NPCs and plac
 
 ### Features
 
-- **Map pins**: hover for name and coordinates; the newest pin sets the waypoint arrow.
+- **Map pins**: gold pins on the world map; hover for name and coordinates, and click a pin or its row in the panel to make it the waypoint.
 - **Todos and geo-reminders**: give a todo a zone, such as `@ Stormwind`, and get reminded when you arrive.
 - **Assistant push**: agents that can edit files write pins and todos into `Inbox.lua`; they're imported on sync.
 - **Character info**: level, money, location, talents, professions, quests, gear and learned recipes, for your assistant to read.

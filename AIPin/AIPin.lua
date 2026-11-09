@@ -286,9 +286,11 @@ local function RestoreWaypoint(imported)
 end
 
 -- Own map pins ---------------------------------------------------------
--- One AIPin icon per saved pin on the map being viewed. The map redraws them on
+-- One gold pin per saved pin on the map being viewed. The map redraws them on
 -- open and on every map change; frames are pooled because WoW never frees them.
-local ICON = "Interface\\AddOns\\AIPin\\media\\icon"
+local PIN_ICON = "Interface\\AddOns\\AIPin\\media\\pin" -- drawn from media/pin.svg
+local PIN_SIZE = 42 -- the drawn pin is ~33 tall, a bit taller than Blizzard's 30x30 map icons
+local PIN_TIP = 58 / 64 -- the pin's point, as a fraction of the texture height from the top
 local NEAR = 1.5 -- map percent; icons this close overlap, so their tooltips list each other
 local provider
 local pinFrames, pinsUsed = {}, 0
@@ -330,10 +332,17 @@ end
 
 local function NewPinFrame(canvas)
   local pin = CreateFrame("Button", nil, canvas)
-  pin:SetSize(24, 24)
+  pin:SetSize(PIN_SIZE, PIN_SIZE)
   pin.tex = pin:CreateTexture(nil, "OVERLAY")
   pin.tex:SetAllPoints()
-  pin.tex:SetTexture(ICON)
+  pin.tex:SetTexture(PIN_ICON)
+  local glow = pin:CreateTexture(nil, "HIGHLIGHT")
+  glow:SetAllPoints()
+  glow:SetTexture(PIN_ICON)
+  glow:SetBlendMode("ADD")
+  glow:SetAlpha(0.35)
+  -- The pin is narrower than its square texture; only the pin itself takes the mouse.
+  pin:SetHitRectInsets(PIN_SIZE * 0.2, PIN_SIZE * 0.2, PIN_SIZE * 0.1, PIN_SIZE * (1 - PIN_TIP))
   pin:EnableMouse(true)
   pin:RegisterForClicks("LeftButtonUp")
   -- Right-click still reaches the map (zoom out).
@@ -345,6 +354,40 @@ local function NewPinFrame(canvas)
   pin:SetScript("OnEnter", PinTooltip)
   pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
   return pin
+end
+
+-- Like Blizzard's waypoint pin (SetScalingLimits(1, 1.0, 1.2)): the same size on
+-- screen at any zoom, up to 1.2x when fully zoomed in, instead of growing with the map.
+local function PinScale(map)
+  local ok, scale = pcall(function()
+    local zoom = math.min(math.max(map:GetCanvasZoomPercent() or 0, 0), 1)
+    local global = map.GetGlobalPinScale and map:GetGlobalPinScale() or 1
+    return (1 + 0.2 * zoom) * global / map:GetCanvasScale()
+  end)
+  if ok and type(scale) == "number" and scale > 0 and scale < math.huge then return scale end
+  return 1
+end
+
+-- SetPoint offsets are in the pin's own scaled units, hence the division.
+-- The point of the pin, not its middle, sits on the spot.
+local function PlacePin(pin, canvas, w, h, scale)
+  local p = pin.aipin
+  pin:SetScale(scale)
+  pin:ClearAllPoints()
+  pin:SetPoint("CENTER", canvas, "TOPLEFT",
+    w * p.x / 100 / scale, -h * p.y / 100 / scale + PIN_SIZE * (PIN_TIP - 0.5))
+end
+
+-- Zooming only rescales the pins already shown, so a hovered pin keeps its tooltip.
+local function RescaleOwnPins()
+  if not provider then return end
+  local map = provider:GetMap()
+  local canvas = map:GetCanvas()
+  local w, h = canvas:GetWidth(), canvas:GetHeight()
+  local scale = PinScale(map)
+  for i = 1, pinsUsed do
+    if pinFrames[i].aipin then PlacePin(pinFrames[i], canvas, w, h, scale) end
+  end
 end
 
 local HookWorldMap -- defined below
@@ -359,6 +402,7 @@ local function RefreshOwnPins()
   EnsureDB()
   local canvas = map:GetCanvas()
   local w, h = canvas:GetWidth(), canvas:GetHeight()
+  local scale = PinScale(map)
   local level
   for _, p in ipairs(AIPinDB.pins) do
     if p.uiMapID == mapID and p.x and p.y then
@@ -366,8 +410,7 @@ local function RefreshOwnPins()
       local pin = provider:AcquirePin()
       pin.aipin = p
       pin:SetFrameLevel(level)
-      pin:ClearAllPoints()
-      pin:SetPoint("CENTER", canvas, "TOPLEFT", w * p.x / 100, -h * p.y / 100)
+      PlacePin(pin, canvas, w, h, scale)
       pin:Show()
     end
   end
@@ -398,6 +441,7 @@ HookWorldMap = function()
   provider.RefreshAllData = function() RefreshOwnPins() end
   provider.OnMapChanged = function() RefreshOwnPins() end
   provider.OnCanvasSizeChanged = function() RefreshOwnPins() end
+  provider.OnCanvasScaleChanged = function() RescaleOwnPins() end
   WorldMapFrame:AddDataProvider(provider)
   WorldMapFrame:HookScript("OnShow", function() RefreshOwnPins() end)
 end
