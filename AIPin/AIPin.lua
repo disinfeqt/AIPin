@@ -69,6 +69,13 @@ local ZONE = {
   ["felwood"] = 1448, ["费伍德森林"] = 1448,
   ["azshara"] = 1447, ["艾萨拉"] = 1447,
   ["moonglade"] = 1450, ["月光林地"] = 1450,
+  -- New in Forever. uiMapIDs from Leatrix_Maps and DungeonsForever, zhCN names from
+  -- Leatrix_Plus; 河林 = 2548 is also in a player's snapshot. Zephras Isle's zhCN name
+  -- isn't confirmed, so ResolveZone finds it in the game's map data.
+  ["riverglades"] = 2548, ["河林"] = 2548,
+  ["mount hyjal"] = 2482, ["hyjal"] = 2482, ["海加尔山"] = 2482,
+  ["shen'dralas"] = 2652, ["shendralas"] = 2652, ["辛德拉"] = 2652,
+  ["zephras isle"] = 2521, ["zephras"] = 2521,
 }
 
 local function Print(msg)
@@ -91,25 +98,96 @@ local function MapName(uiMapID)
   return tostring(uiMapID)
 end
 
+-- Lowercased, with a curly ’ (some locales use it, e.g. frFR "Shen’dralas") as '.
+local function NameKey(s)
+  return (Normalize(s):gsub("\226\128\153", "'"))
+end
+
+-- The game's own map names, for zones ZONE doesn't list (Forever keeps adding
+-- them) and for zone names in any client language. Built on first use.
+local ZONE_TYPE = Enum and Enum.UIMapType and Enum.UIMapType.Zone or 3
+local mapsByName, mapSeen, scannedAll
+
+local function MapInfo(id)
+  local ok, info = pcall(C_Map.GetMapInfo, id)
+  if ok then return info end
+end
+
+local function AddMap(id)
+  if not id or mapSeen[id] then return end
+  mapSeen[id] = true
+  local info = MapInfo(id)
+  if not (info and info.name and info.name ~= "") then return end
+  local key = NameKey(info.name)
+  local cur = mapsByName[key]
+  -- First one wins, except that a zone beats a smaller map with the same name.
+  if not cur or (info.mapType == ZONE_TYPE and cur.mapType ~= ZONE_TYPE) then
+    mapsByName[key] = { id = id, mapType = info.mapType }
+  end
+end
+
+local function BuildMapIndex()
+  mapsByName, mapSeen = {}, {}
+  -- ZONE's maps first, so a duplicate name elsewhere can't take over a known zone.
+  for _, id in pairs(ZONE) do AddMap(id) end
+  -- Then everything under the world and continent maps, and under the top of
+  -- the map the player is on.
+  local roots = { 946, 947, 1414, 1415 }
+  if C_Map.GetFallbackWorldMapID then
+    local ok, id = pcall(C_Map.GetFallbackWorldMapID)
+    if ok and id then roots[#roots + 1] = id end
+  end
+  local here = C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+  for _ = 1, 10 do
+    local info = here and MapInfo(here)
+    if not (info and info.parentMapID and info.parentMapID > 0) then break end
+    here = info.parentMapID
+  end
+  if here then roots[#roots + 1] = here end
+  if not C_Map.GetMapChildrenInfo then return end
+  local walked = {} -- a root under an earlier root has had its maps added already
+  for _, root in ipairs(roots) do
+    if not walked[root] then
+      walked[root] = true
+      AddMap(root)
+      local ok, children = pcall(C_Map.GetMapChildrenInfo, root, nil, true)
+      if ok and type(children) == "table" then
+        for _, child in ipairs(children) do
+          if child.mapID then
+            walked[child.mapID] = true
+            AddMap(child.mapID)
+          end
+        end
+      end
+    end
+  end
+end
+
+-- A map with no parent (an island of its own) is under no root, so on a miss try
+-- every uiMapID up to well past the highest one seen. Once per session.
+local function ScanAllMaps()
+  scannedAll = true
+  local top = 3000
+  for id in pairs(mapSeen) do
+    if id > top then top = id end
+  end
+  for id = 1, top + 1000 do AddMap(id) end
+end
+
 local function ResolveZone(name)
-  if not name or name == "" then return nil end
-  local key = Normalize(name)
+  if not name then return nil end
+  local key = NameKey(name)
+  if key == "" then return nil end
   if ZONE[key] then return ZONE[key] end
+  if C_Map and C_Map.GetMapInfo then
+    if not mapsByName then BuildMapIndex() end
+    if not mapsByName[key] and not scannedAll then ScanAllMaps() end
+    if mapsByName[key] then return mapsByName[key].id end
+  end
+  -- Close enough to a known zone, e.g. "the wetlands" or "dun morogh coldridge".
   for k, id in pairs(ZONE) do
     if key:find(k, 1, true) or k:find(key, 1, true) then
       return id
-    end
-  end
-  if C_Map and C_Map.GetMapInfo then
-    local seen = {}
-    for _, id in pairs(ZONE) do
-      if not seen[id] then
-        seen[id] = true
-        local info = C_Map.GetMapInfo(id)
-        if info and info.name and Normalize(info.name) == key then
-          return id
-        end
-      end
     end
   end
   return nil
@@ -289,7 +367,7 @@ end
 -- One gold pin per saved pin on the map being viewed. The map redraws them on
 -- open and on every map change; frames are pooled because WoW never frees them.
 local PIN_ICON = "Interface\\AddOns\\AIPin\\media\\pin" -- drawn from media/pin.svg
-local PIN_SIZE = 42 -- the drawn pin is ~33 tall, a bit taller than Blizzard's 30x30 map icons
+local PIN_SIZE = 24 -- the drawn pin is ~18 tall, about the size of Blizzard's waypoint diamond
 local PIN_TIP = 58 / 64 -- the pin's point, as a fraction of the texture height from the top
 local NEAR = 1.5 -- map percent; icons this close overlap, so their tooltips list each other
 local provider
@@ -341,8 +419,9 @@ local function NewPinFrame(canvas)
   glow:SetTexture(PIN_ICON)
   glow:SetBlendMode("ADD")
   glow:SetAlpha(0.35)
-  -- The pin is narrower than its square texture; only the pin itself takes the mouse.
-  pin:SetHitRectInsets(PIN_SIZE * 0.2, PIN_SIZE * 0.2, PIN_SIZE * 0.1, PIN_SIZE * (1 - PIN_TIP))
+  -- The pin is narrower than its square texture; the mouse area is the pin plus a
+  -- little margin each side (~17x19 at 24px), so the small pin is still easy to click.
+  pin:SetHitRectInsets(PIN_SIZE * 0.15, PIN_SIZE * 0.15, PIN_SIZE * 0.1, PIN_SIZE * (1 - PIN_TIP))
   pin:EnableMouse(true)
   pin:RegisterForClicks("LeftButtonUp")
   -- Right-click still reaches the map (zoom out).

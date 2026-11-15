@@ -1,5 +1,14 @@
 # CHANGELOG / 更新日志
 
+## 1.4.10 - 2026-11-15
+
+- 修复：区域写成「河林」的标记导入不了，待办也不会在到达时提醒。现在认识 Forever 新增的区域：河林、海加尔山、辛德拉和 Zephras Isle。
+- 区域名不在 AIPin 的列表里时，会按游戏地图上的名字查找，以后的新区域和任何语言的区域名都能直接用。
+- 世界地图上的金色图钉缩小到原来的一半左右，和导航点的方形标记差不多大，不再盖住地图上的地名，照样能点。
+- Fix: pins in Riverglades (河林) weren't imported, and todos there never reminded you on arrival. AIPin now knows Forever's new zones: Riverglades, Mount Hyjal, Shen'dralas and Zephras Isle.
+- A zone name that isn't in AIPin's list is looked up by the names on the game's own maps, so future zones and zone names in any client language work too.
+- The gold pins on the world map are about half their old size, close to the waypoint's square marker, so they no longer cover the map's place names. They're still easy to click.
+
 ## 1.4.9 - 2026-11-09
 
 - 修复：/reload、下线或同步后，存档偶尔把经验存成 0、等级停在上一级、位置丢失。现在经验、等级和位置都取自同一次完整读取，读不到时保留这次游戏里最后读到的值，刚登录时会反复读取直到数据加载完。

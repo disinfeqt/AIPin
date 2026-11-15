@@ -35,7 +35,7 @@ AIPinInbox = {
 }
 ```
 
-- List only new entries. `zone` is an English or Chinese zone name (table at the top of `AIPin.lua`), or use `map = <uiMapID>`.
+- List only new entries. `zone` is an English or Chinese zone name (table at the top of `AIPin.lua`) or any zone name as the player's game shows it (like the snapshot's `mapName`), or use `map = <uiMapID>`.
 - At most 20 pins are kept. The waypoint goes to the last pin on the player's current map, so list the next stop last.
 - A todo with `zone` reminds on entering it, adding `x`/`y` reminds near that spot; neither makes a plain todo.
 
