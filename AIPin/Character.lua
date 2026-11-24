@@ -426,11 +426,111 @@ local function Bags(s)
   s.bagFree, s.bagTotal = free, total
 end
 
--- Realm without spaces or hyphens, whichever API answers. GetNormalizedRealmName
--- can return nil (e.g. at logout); falling back to the spaced name used to save a
--- second copy of the same character.
-local function Realm(r) return type(r) == "string" and (r:gsub("[%s%-]", "")) or nil end
-local function RealmKey() return Realm(safe(try(GetNormalizedRealmName))) or Realm(safe(try(GetRealmName))) or "?" end
+-- Realm without spaces or hyphens, or nil when there is none. Lua counts "" as
+-- true, so a blank answer has to become nil here: otherwise `Realm(a) or Realm(b)`
+-- stops at "" and the character is saved as "Name-". Forever's
+-- GetNormalizedRealmName has answered "" since about 2026-11-22. "?" is the
+-- placeholder 1.4.10 and earlier saved when no API answered.
+local function Realm(r)
+  if type(r) ~= "string" then return nil end
+  r = r:gsub("[%s%-]", "")
+  if r == "" or r == "?" then return nil end
+  return r
+end
+
+-- This session's realm, from whichever API answers first. GetRealmName gives the
+-- spaced name, which Realm turns into the same key; UnitFullName gives the realm as
+-- its second value (try keeps both). Kept once read, because GetNormalizedRealmName
+-- can answer nil at logout and the realm can't change before the next login.
+local sessionRealm
+local function CurrentRealm()
+  local r = Realm(safe(try(GetNormalizedRealmName))) or Realm(safe(try(GetRealmName)))
+  if not r then
+    local _, realm = try(UnitFullName, "player")
+    r = Realm(safe(realm))
+  end
+  sessionRealm = r or sessionRealm
+  return sessionRealm
+end
+
+-- Saved entries are keyed "Name-Realm" (character names have no hyphens).
+local function EntryName(k, v)
+  if type(v.name) == "string" and v.name ~= "" then return v.name end
+  return type(k) == "string" and k:match("^([^%-]+)%-") or nil
+end
+local function EntryRealm(k, v)
+  return Realm(v.realm) or (type(k) == "string" and Realm(k:match("^[^%-]+%-(.*)$"))) or nil
+end
+
+-- Whether saved entry a is newer than b, by updated, else by updatedText.
+local function Newer(a, b)
+  local ta, tb = tonumber(a.updated), tonumber(b.updated)
+  if ta ~= tb then return (ta or 0) > (tb or 0) end
+  return type(a.updatedText) == "string" and (type(b.updatedText) ~= "string" or a.updatedText > b.updatedText)
+end
+
+-- The real realms saved under each character name, and the keys saved without one.
+local function SavedRealms()
+  local realms, loose = {}, {}
+  if type(AIPinChars) ~= "table" then return realms, loose end
+  for k, v in pairs(AIPinChars) do
+    local n = type(v) == "table" and EntryName(k, v)
+    if n then
+      local r = EntryRealm(k, v)
+      if r then
+        realms[n] = realms[n] or {}
+        realms[n][r] = true
+      else
+        loose[#loose + 1] = k
+      end
+    end
+  end
+  return realms, loose
+end
+
+-- The one real realm saved under name; nil if there is none or more than one.
+local function OnlyRealm(realms, name)
+  local only
+  for r in pairs(realms[name] or {}) do
+    if only then return nil end
+    only = r
+  end
+  return only
+end
+
+-- 1.4.10 and earlier saved "Name-" (realm "") once GetNormalizedRealmName answered
+-- "", or "Name-?" when no API answered, next to the real "Name-Realm" entry. Move
+-- each to "Name-Realm" and keep whichever of the two is newer, as a whole. The realm
+-- is this session's for the character being played (name, realm), otherwise the
+-- only real realm saved under that name; with several, it waits for a login there.
+local function FixRealmless(name, realm)
+  local realms, loose = SavedRealms()
+  for _, k in ipairs(loose) do
+    local v = AIPinChars[k]
+    local n = EntryName(k, v)
+    local r = (realm and n == name) and realm or OnlyRealm(realms, n)
+    if r then
+      local key = n .. "-" .. r
+      local have = AIPinChars[key]
+      AIPinChars[k] = nil
+      if type(have) ~= "table" or Newer(v, have) then
+        v.name, v.realm = n, r
+        AIPinChars[key] = v
+      end
+    end
+  end
+end
+
+-- "Name-Realm" for the character being played, or nil while the name or realm is
+-- unknown. Without a realm read this session, the only realm saved for the name.
+-- Never "Name-" or "Name-?".
+local function PlayerKey()
+  local name = safe(try(UnitName, "player"))
+  if not name or name == "" then return nil end
+  local realm = CurrentRealm() or OnlyRealm((SavedRealms()), name)
+  if not realm then return nil end
+  return name .. "-" .. realm, name, realm
+end
 
 -- Data readiness ----------------------------------------------------------------
 -- Right after login or a reload, XP, money, gear, professions and quest details can
@@ -588,10 +688,11 @@ end
 -- Returns true when the game's data had loaded (see Complete).
 local function Snapshot()
   if type(AIPinChars) ~= "table" then AIPinChars = {} end
-  local name = safe(try(UnitName, "player"))
-  if not name then return end
-  local realm = RealmKey()
-  local key = name .. "-" .. realm
+  -- No realm yet: save nothing rather than "Name-". Settle, later events and
+  -- PLAYER_LOGOUT try again.
+  local key, name, realm = PlayerKey()
+  if not key then return end
+  pcall(FixRealmless, name, realm)
   local s = { name = name, realm = realm }
   s.race = safe(try(UnitRace, "player"))
   s.class = safe(try(UnitClass, "player"))
@@ -603,15 +704,19 @@ local function Snapshot()
   s.guild = safe(try(GetGuildInfo, "player"))
   s.hearth = safe(try(GetBindLocation))
   local old = AIPinChars[key]
-  -- Fold in copies saved under the spaced realm name; keep the newest as "old".
+  -- Fold in copies saved under the spaced realm name or no realm; keep the newest as "old".
   for k, v in pairs(AIPinChars) do
-    if k ~= key and type(v) == "table" and v.name == name and Realm(v.realm) == realm then
-      if not old or (tonumber(v.updated) or 0) > (tonumber(old.updated) or 0) then old = v end
-      AIPinChars[k] = nil
+    if k ~= key and type(v) == "table" and EntryName(k, v) == name then
+      local r = EntryRealm(k, v)
+      if r == realm or not r then
+        if type(old) ~= "table" or Newer(v, old) then old = v end
+        AIPinChars[k] = nil
+      end
     end
   end
   if type(old) ~= "table" then old = nil end
   if old then s.timePlayed, s.timePlayedLevel = old.timePlayed, old.timePlayedLevel end
+  if seen.played and seen.played[1] then s.timePlayed, s.timePlayedLevel = seen.played[1], seen.played[2] end
   for _, f in ipairs({ Location, Talents, Professions, Quests, Gear, Bags }) do pcall(f, s, old) end
   local complete = Complete(s)
   for _, f in ipairs({ SettleXP, SettleLocation, SettleProfessions }) do pcall(f, s, old) end
@@ -660,6 +765,9 @@ for _, e in ipairs({ "PLAYER_LOGIN","PLAYER_ENTERING_WORLD","PLAYER_LEVEL_UP","P
 end
 f:SetScript("OnEvent", function(_, ev, a1, a2)
   if ev == "PLAYER_LOGIN" or ev == "PLAYER_ENTERING_WORLD" then
+    -- Before any snapshot: an entry saved with no realm whose name has only one
+    -- realm saved moves there even if this session's realm can't be read yet.
+    pcall(FixRealmless, safe(try(UnitName, "player")), CurrentRealm())
     if not C_Timer then Request(true)
     elseif not settling then settling = true; C_Timer.After(3, function() Settle(0) end) end
   elseif ev == "PLAYER_LEVEL_UP" then
@@ -671,10 +779,11 @@ f:SetScript("OnEvent", function(_, ev, a1, a2)
   elseif ev == "PLAYER_REGEN_ENABLED" then
     if pending then pending = false; Request(true) end
   elseif ev == "TIME_PLAYED_MSG" then
-    local key = (safe(try(UnitName, "player")) or "?") .. "-" .. RealmKey()
-    if type(AIPinChars) == "table" and AIPinChars[key] then
-      AIPinChars[key].timePlayed, AIPinChars[key].timePlayedLevel = safe(a1), safe(a2)
-    end
+    -- Kept for the next snapshot too, in case this one has no entry or realm yet.
+    seen.played = { safe(a1), safe(a2) }
+    local key = PlayerKey()
+    local e = key and type(AIPinChars) == "table" and AIPinChars[key]
+    if type(e) == "table" then e.timePlayed, e.timePlayedLevel = seen.played[1], seen.played[2] end
   else
     Request()
   end

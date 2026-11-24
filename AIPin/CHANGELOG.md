@@ -1,5 +1,10 @@
 # CHANGELOG / 更新日志
 
+## 1.4.11 - 2026-11-24
+
+- 修复：角色数据被存成「角色名-」，服务器名是空的，AI 助手一直读到旧的那份。现在服务器名读不到时会换别的方式读，读到之前不写入存档；已经存成「角色名-」的数据会并入「角色名-服务器」，保留最新的一份。
+- Fix: snapshots were saved as "Name-" with an empty realm, so your AI assistant kept reading an old copy. AIPin now tries other ways to read the realm and waits to save until it has one. Data already saved as "Name-" is merged into "Name-Realm", keeping the newest copy.
+
 ## 1.4.10 - 2026-11-15
 
 - 修复：区域写成「河林」的标记导入不了，待办也不会在到达时提醒。现在认识 Forever 新增的区域：河林、海加尔山、辛德拉和 Zephras Isle。
